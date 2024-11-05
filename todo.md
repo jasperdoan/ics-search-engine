@@ -13,7 +13,9 @@ Search:
 
 Extra Credit:
     [x] Implement a Web or GUI interface instead of a console one. (1 point for local GUI, 2 points for Web interface)
-    [ ] Detect and eliminate duplicate pages. (1 point for exact, 2 points for near)
+    [x] Detect and eliminate duplicate pages. (1 point for exact, 2 points for near)
+        [x] Store SimHash fingerprints alongside documents
+        [x] Compare only against documents with content length
     [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
     [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
     [ ] Enhance the index with word positions and use that information for retrieval. (2 points)
@@ -33,5 +35,5 @@ Misc:
 
 
 Issues:
-    [ ] 'research' tf_idf doesn't seem to save properly or work (?) Its all 0.0
+    [ ] 'research' / 'comput' / 'scienc' tf_idf doesn't seem to save properly or work (?) Its all 0.0
     [ ] Real HTML pages found out there are full of bugs! Some of the pages in the dataset may not contain any HTML at all and, when they do, it may not be well formed. For example, there might be an open <strong> tag but the associated closing </strong> tag might be missing. While selecting the parser library for your project, please ensure that it can handle broken HTML.

@@ -8,7 +8,8 @@ from collections import defaultdict
 from typing import Dict, List, Set
 
 from utils.tokenizer import tokenize
-from utils.constants import DATA_DIR
+from utils.simhash import SimHash
+from utils.constants import DATA_DIR, SIMILARITY_THRESHOLD
 
 
 @dataclass
@@ -18,20 +19,20 @@ class Posting:
     importance: int
     tf_idf: float = 0.0
 
-@dataclass 
+@dataclass
 class Document:
     url: str
     content: str
     doc_id: int
+    simhash: str = ""
 
 class Indexer:
-    
     def __init__(self, data_dir: str = "./TEST"):
         self.data_dir = Path(data_dir)
         self.next_doc_id = 0
         self.index: Dict[str, List[Posting]] = defaultdict(list)
-        self.documents: Dict[int, str] = {}
-        self.processed_hashes: Set[int] = set()
+        self.documents: Dict[int, Document] = {}
+        self.simhasher = SimHash()
         self.total_files = sum(1 for _ in Path(data_dir).rglob("*.json"))
         self.files_processed = 0
         self.progress_callback = None
@@ -51,10 +52,21 @@ class Indexer:
             with open(file_path) as f:
                 data = json.load(f)
             
+            # Calculate SimHash first
+            simhash = self.simhasher.compute_simhash(data['content'])
+            
+            # Check for near-duplicates
+            for existing_doc in self.documents.values():
+                if abs(len(data['content']) - len(existing_doc.content)) < 1000:  # Only compare similar lengths
+                    if 1 - self.simhasher.hamming_distance(simhash, existing_doc.simhash) / self.simhasher.b >= SIMILARITY_THRESHOLD:
+                        print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, skipping")
+                        return
+            
             doc = Document(
                 url=data['url'],
-                content=data['content'], 
-                doc_id=self.next_doc_id
+                content=data['content'],
+                doc_id=self.next_doc_id,
+                simhash=simhash
             )
             
             soup = BeautifulSoup(doc.content, 'html.parser')
@@ -80,12 +92,6 @@ class Indexer:
             for token in important_tokens:
                 count, imp = freq_map[token]
                 freq_map[token] = (count * 2 if count > 0 else 1, imp + 1)
-
-            # Check duplicates
-            content_hash = hash(frozenset(freq_map.items()))
-            if content_hash in self.processed_hashes:
-                print(f"\tDuplicate document detected, skipping")
-                return
                 
             # Update index
             unique_terms = 0
@@ -97,8 +103,7 @@ class Indexer:
             
             print(f"\tAdded {unique_terms} unique terms to index")
             
-            self.documents[doc.doc_id] = doc.url
-            self.processed_hashes.add(content_hash)
+            self.documents[doc.doc_id] = doc
             self.next_doc_id += 1
             
         except Exception as e:
@@ -136,7 +141,13 @@ class Indexer:
         """Save index to disk and report its size"""
         total_postings = sum(len(postings) for postings in self.index.values())
         output = {
-            "documents": self.documents,
+            "documents": {
+                doc_id: {
+                    "url": doc.url,
+                    "simhash": doc.simhash,
+                    "length": len(doc.content)
+                } for doc_id, doc in self.documents.items()
+            },
             "index": {
                 token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
                     for p in postings]
