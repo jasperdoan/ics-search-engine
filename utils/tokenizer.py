@@ -1,11 +1,8 @@
+import nltk
+
 from nltk.tokenize import RegexpTokenizer
-from nltk.stem import WordNetLemmatizer
 from urllib.parse import urlparse
-from constants import STOP_WORDS
-
-
-# Do this first, that'll do something eval() to "materialize" the LazyCorpusLoader
-next(nltk.corpus.wordnet.all_synsets())
+from utils.constants import STOP_WORDS
 
 
 def tokenize(text):
@@ -25,10 +22,6 @@ def tokenize(text):
 
     # Remove stop words from the tokens 
     tokens = [token for token in re_tokens if token not in STOP_WORDS]
-
-    # Identify the base form of any verbs (pos="v") and lemmatize those tokens
-    lemmatizer = WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(w, pos="v") for w in re_tokens]
 
     # Remove single-character tokens
     return [token for token in tokens if len(token) != 1]

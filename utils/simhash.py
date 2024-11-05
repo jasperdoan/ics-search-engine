@@ -1,5 +1,5 @@
 import hashlib
-from parser_utils import tokenize
+from utils.tokenizer import tokenize
 
 class SimHash:
     def __init__(self, b=64):
