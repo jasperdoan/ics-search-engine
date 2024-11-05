@@ -8,3 +8,6 @@ index:
 
 clean:
 	rm -rf index.json
+
+app:
+	python -m streamlit run .\main.py

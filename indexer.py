@@ -30,8 +30,11 @@ class Indexer:
         self.data_dir = Path(data_dir)
         self.next_doc_id = 0
         self.index: Dict[str, List[Posting]] = defaultdict(list)
-        self.documents: Dict[int, str] = {}  # doc_id -> url
+        self.documents: Dict[int, str] = {}
         self.processed_hashes: Set[int] = set()
+        self.total_files = sum(1 for _ in Path(data_dir).rglob("*.json"))
+        self.files_processed = 0
+        self.progress_callback = None
 
 
     def extract_important_text(self, soup: BeautifulSoup) -> str:
@@ -43,51 +46,63 @@ class Indexer:
     def process_document(self, file_path: Path) -> None:
         """Process a single document and update the index"""
         try:
-            # Load and parse document
+            print(f"\nProcessing {file_path}")
+            
             with open(file_path) as f:
                 data = json.load(f)
             
             doc = Document(
                 url=data['url'],
-                content=data['content'],
+                content=data['content'], 
                 doc_id=self.next_doc_id
             )
             
-            # Parse HTML
             soup = BeautifulSoup(doc.content, 'html.parser')
             text = soup.get_text()
             important_text = self.extract_important_text(soup)
             
-            # Build frequency map
-            freq_map: Dict[str, tuple[int, int]] = defaultdict(lambda: (0, 0))
+            print(f"\tFound {len(important_text.split())} words in important sections")
+            
+            freq_map = defaultdict(lambda: (0, 0))
             
             # Process regular text
-            for token in tokenize(text):
+            regular_tokens = tokenize(text)
+            print(f"\tRegular tokens: {len(regular_tokens)}")
+            
+            for token in regular_tokens:
                 count, imp = freq_map[token]
                 freq_map[token] = (count + 1, imp)
                 
             # Process important text
-            for token in tokenize(important_text):
+            important_tokens = tokenize(important_text)
+            print(f"\tImportant tokens: {len(important_tokens)}")
+            
+            for token in important_tokens:
                 count, imp = freq_map[token]
                 freq_map[token] = (count * 2 if count > 0 else 1, imp + 1)
-            
-            # Check for duplicate content
+
+            # Check duplicates
             content_hash = hash(frozenset(freq_map.items()))
             if content_hash in self.processed_hashes:
+                print(f"\tDuplicate document detected, skipping")
                 return
-            
+                
             # Update index
+            unique_terms = 0
             for token, (freq, importance) in freq_map.items():
                 tf_score = 1 + math.log10(freq) if freq > 0 else 0
                 posting = Posting(doc.doc_id, freq, importance, tf_score)
                 self.index[token].append(posting)
+                unique_terms += 1
+            
+            print(f"\tAdded {unique_terms} unique terms to index")
             
             self.documents[doc.doc_id] = doc.url
             self.processed_hashes.add(content_hash)
             self.next_doc_id += 1
             
         except Exception as e:
-            print(f"Error processing {file_path}: {e}")
+            print(f"\tError processing {file_path}: {e}")
 
 
     def calculate_tf_idf(self) -> None:
@@ -99,36 +114,55 @@ class Indexer:
                 posting.tf_idf = posting.tf_idf * idf
 
 
+    def set_progress_callback(self, callback):
+        self.progress_callback = callback
+
+
     def build_index(self) -> None:
         """Build the complete index from documents"""
+        self.files_processed = 0
         for folder in self.data_dir.iterdir():
             if folder.is_dir():
                 for file in folder.glob("*.json"):
                     self.process_document(file)
+                    self.files_processed += 1
+                    if self.progress_callback:
+                        progress = (self.files_processed / self.total_files) * 100
+                        self.progress_callback(progress)
         self.calculate_tf_idf()
 
 
     def save_index(self, output_file: str = "index.json") -> None:
-        """Save index to disk"""
+        """Save index to disk and report its size"""
+        total_postings = sum(len(postings) for postings in self.index.values())
         output = {
             "documents": self.documents,
             "index": {
                 token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
-                       for p in postings]
+                    for p in postings]
                 for token, postings in self.index.items()
             }
         }
         with open(output_file, 'w') as f:
             json.dump(output, f)
+            
+        # Get file size
+        file_size_bytes = Path(output_file).stat().st_size
+        file_size_kb = file_size_bytes / 1024
+
+        print("\n==================================")
+        print(f"Total documents indexed: {len(self.documents)}")
+        print(f"Total unique tokens: {len(self.index)}")
+        print(f"Index size: {file_size_kb:.2f} KB")
+        print("==================================\n")
+        print(f"Index saved to {output_file}")
+
 
 
 def main():
     indexer = Indexer()
     indexer.build_index()
     indexer.save_index()
-    
-    print(f"Documents indexed: {len(indexer.documents)}")
-    print(f"Unique terms: {len(indexer.index)}")
 
 if __name__ == "__main__":
     main()
