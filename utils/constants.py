@@ -19,15 +19,17 @@ STOP_WORDS = {
     }
 
 # DIRECTORY
-DATA_DIR = "./TEST"
+TEST_DIR = "./TEST"
+ANALYST_DIR = "./ANALYST"
+DEV_DIR = "./DEV"
 
 # THRESHOLDS
 SIMILARITY_THRESHOLD = 0.8
 NEAR_DUPLICATE_LENGTH_DIFF = 1000
 
 # FILE PATHS
-DEFAULT_DOCS_FILE = "documents.json" 
-DEFAULT_INDEX_FILE = "index.json"
+DOCS_FILE = "documents.json" 
+INDEX_FILE = "index.json"
 
 # HTML TAGS
 IMPORTANT_HTML_TAGS = ['b', 'strong', 'h1', 'h2', 'h3', 'title']

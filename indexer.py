@@ -6,15 +6,19 @@ from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from collections import defaultdict
 from typing import Dict, List, Set, Tuple
+from multiprocessing import Pool, Manager, cpu_count
+from functools import partial
 
 from utils.tokenizer import tokenize
 from utils.simhash import SimHash
 from utils.constants import (
-    DATA_DIR, 
+    TEST_DIR,
+    ANALYST_DIR,
+    DEV_DIR,
     SIMILARITY_THRESHOLD,
     NEAR_DUPLICATE_LENGTH_DIFF,
-    DEFAULT_DOCS_FILE,
-    DEFAULT_INDEX_FILE,
+    DOCS_FILE,
+    INDEX_FILE,
     IMPORTANT_HTML_TAGS
 )
 
@@ -37,7 +41,7 @@ class Document:
 
 
 class Indexer:
-    def __init__(self, data_dir: str = "./TEST"):
+    def __init__(self, data_dir: str = TEST_DIR):
         self.data_dir = Path(data_dir)
         self.next_doc_id = 0
         self.index: Dict[str, List[Posting]] = defaultdict(list)
@@ -168,7 +172,7 @@ class Indexer:
         self.calculate_tf_idf()
 
 
-    def save_index(self, docs_file: str = DEFAULT_DOCS_FILE, index_file: str = DEFAULT_INDEX_FILE) -> None:
+    def save_index(self) -> None:
         """Save documents and index to separate files and report their sizes"""
         # Prepare documents output
         documents_output = {
@@ -187,24 +191,24 @@ class Indexer:
         }
         
         # Save documents
-        with open(docs_file, 'w') as f:
+        with open(DOCS_FILE, 'w') as f:
             json.dump(documents_output, f)
             
         # Save index
-        with open(index_file, 'w') as f:
+        with open(INDEX_FILE, 'w') as f:
             json.dump(index_output, f)
         
         # Calculate file sizes
-        docs_size_kb = Path(docs_file).stat().st_size / 1024
-        index_size_kb = Path(index_file).stat().st_size / 1024
+        docs_size_kb = Path(DOCS_FILE).stat().st_size / 1024
+        index_size_kb = Path(INDEX_FILE).stat().st_size / 1024
         
         print(f"\n========================================")
         print(f"Documents indexed:  {len(self.documents)}")
         print(f"Unique tokens:      {len(self.index)}")
         print(f"Index file size:    {index_size_kb:.2f} KB")
         print(f"========================================\n")
-        print(f"Documents saved to {docs_file}")
-        print(f"Index saved to {index_file}")
+        print(f"Documents saved to {DOCS_FILE}")
+        print(f"Index saved to {INDEX_FILE}")
 
 
 
