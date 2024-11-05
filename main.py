@@ -1,7 +1,16 @@
 import streamlit as st
 import json
+
 from pathlib import Path
 from indexer import Indexer
+
+from utils.constants import (
+    TEST_DIR,
+    ANALYST_DIR,
+    DEV_DIR,
+    DOCS_FILE,
+    INDEX_FILE
+)
 
 st.set_page_config(
     page_title='CS121 A3 Search Engine',
@@ -17,7 +26,7 @@ def main():
     st.sidebar.header("Configuration")
     data_dir = st.sidebar.selectbox(
         "Select Data Directory",
-        ["./TEST", "./DEV", "./ANALYST"],
+        [TEST_DIR, ANALYST_DIR, DEV_DIR],
         index=0
     )
     
@@ -48,13 +57,16 @@ def main():
 
     with st.sidebar.expander("Index Statistics"):
         try:
-            with open("index.json", "r") as f:
-                data = json.load(f)
+            with open(INDEX_FILE, "r") as f:
+                index_data = json.load(f)
+
+            with open(DOCS_FILE, "r") as f:
+                docs_data = json.load(f)
                 
             stats_text = f"""
             📊 Index Statistics\n
-            • Total documents: {len(data['documents'])}\n
-            • Total unique terms: {len(data['index'])}\n
+            • Total documents: {len(docs_data)}\n
+            • Total unique terms: {len(index_data)}\n
             • Index size: {Path('index.json').stat().st_size / 1024:.2f} KB
             """
             st.info(stats_text)

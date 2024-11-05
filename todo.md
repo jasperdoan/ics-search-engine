@@ -1,0 +1,39 @@
+Indexer:
+    [x] Tokens: all alphanumeric sequences in the dataset.
+    [x] Stop words: do not use stopping, i.e. use all words, even the frequently occurring ones.
+    [x] Stemming: use stemming for better textual matches. Suggestion: Porter stemming.
+    [x] Important words: Words in bold, in headings (h1, h2, h3), and in titles should be treated as more important than the other words.
+
+
+Search:
+    [x] Your program should prompt the user for a query. 
+    [ ] Program will stem the query terms, look up your index, perform some calculations (see ranking below) and give out the ranked list of pages that are relevant for the query, with the most relevant on top. Pages should be identified by their URLs.
+    [ ] Ranking: at the very least, your ranking formula should include tf-idf scoring, and take the important words into consideration, but you should feel free to add additional components to this formula if you think they improve the retrieval. 
+
+
+Extra Credit:
+    [x] Implement a Web or GUI interface instead of a console one. (1 point for local GUI, 2 points for Web interface)
+    [x] Detect and eliminate duplicate pages. (1 point for exact, 2 points for near)
+        [x] Store SimHash fingerprints alongside documents
+        [x] Compare only against documents with content length
+    [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
+    [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
+    [ ] Enhance the index with word positions and use that information for retrieval. (2 points)
+    [ ] Index anchor words for the target pages (1 point).
+
+
+Search interface:
+    [ ] The response to search queries should be 300ms. Ideally, it would be 100ms, or less, but you won’t be penalized if it’s higher (as long as it’s kept 300ms).
+
+
+Operational constraints: 
+    [ ] Typically, the cloud servers/containers that run search engines don’t have a lot of memory, but they need to handle large amounts of data. As such, you must design and implement your programs as if you are dealing with very large amounts of data, so large that you cannot hold the inverted index all in memory. Your indexer must offload the inverted index hash map from main memory to a partial index on disk at least 3 times during index construction; those partial indexes should be merged in the end. Optionally, after or during merging, they can also be split into separate index files with term ranges. similarly, your search component must not load the entire inverted index in main memory. Instead, it must read the postings from the index(es) files on disk. The TAs will check that both of these things are happening.
+
+
+Misc:
+    [ ] Look into text indexing libraries such as Lucene, PyLucene, or ElasticSearch (might make our lives easier)
+
+
+Issues:
+    [ ] 'research' / 'comput' / 'scienc' tf_idf doesn't seem to save properly or work (?) Its all 0.0
+    [ ] Real HTML pages found out there are full of bugs! Some of the pages in the dataset may not contain any HTML at all and, when they do, it may not be well formed. For example, there might be an open <strong> tag but the associated closing </strong> tag might be missing. While selecting the parser library for your project, please ensure that it can handle broken HTML.
