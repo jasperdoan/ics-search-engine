@@ -9,7 +9,14 @@ from typing import Dict, List, Set, Tuple
 
 from utils.tokenizer import tokenize
 from utils.simhash import SimHash
-from utils.constants import DATA_DIR, SIMILARITY_THRESHOLD
+from utils.constants import (
+    DATA_DIR, 
+    SIMILARITY_THRESHOLD,
+    NEAR_DUPLICATE_LENGTH_DIFF,
+    DEFAULT_DOCS_FILE,
+    DEFAULT_INDEX_FILE,
+    IMPORTANT_HTML_TAGS
+)
 
 
 
@@ -43,14 +50,14 @@ class Indexer:
 
     def extract_important_text(self, soup: BeautifulSoup) -> str:
         """Extract text from important HTML tags"""
-        important_tags = soup.find_all(['b', 'strong', 'h1', 'h2', 'h3', 'title'])
+        important_tags = soup.find_all(IMPORTANT_HTML_TAGS)
         return ' '.join(tag.get_text() for tag in important_tags)
 
 
     def is_near_duplicate(self, content: str, simhash: str) -> bool:
         """Check if document is a near-duplicate of existing documents"""
         for existing_doc in self.documents.values():
-            if abs(len(content) - len(existing_doc.content)) < 1000:
+            if abs(len(content) - len(existing_doc.content)) < NEAR_DUPLICATE_LENGTH_DIFF:
                 similarity_score = 1 - self.simhasher.hamming_distance(simhash, existing_doc.simhash) / self.simhasher.b
                 if similarity_score >= SIMILARITY_THRESHOLD:
                     print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, being {100*similarity_score:.2f}% similar")
@@ -161,7 +168,7 @@ class Indexer:
         self.calculate_tf_idf()
 
 
-    def save_index(self, docs_file: str = "documents.json", index_file: str = "index.json") -> None:
+    def save_index(self, docs_file: str = DEFAULT_DOCS_FILE, index_file: str = DEFAULT_INDEX_FILE) -> None:
         """Save documents and index to separate files and report their sizes"""
         # Prepare documents output
         documents_output = {
