@@ -161,36 +161,43 @@ class Indexer:
         self.calculate_tf_idf()
 
 
-    def save_index(self, output_file: str = "index.json") -> None:
-        """Save index to disk and report its size"""
-        total_postings = sum(len(postings) for postings in self.index.values())
-        output = {
-            "documents": {
-                doc_id: {
-                    "url": doc.url,
-                    "simhash": doc.simhash,
-                    "length": len(doc.content)
-                } for doc_id, doc in self.documents.items()
-            },
-            "index": {
-                token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
-                    for p in postings]
-                for token, postings in self.index.items()
-            }
+    def save_index(self, docs_file: str = "documents.json", index_file: str = "index.json") -> None:
+        """Save documents and index to separate files and report their sizes"""
+        # Prepare documents output
+        documents_output = {
+            doc_id: {
+                "url": doc.url,
+                "simhash": doc.simhash,
+                "length": len(doc.content)
+            } for doc_id, doc in self.documents.items()
         }
-        with open(output_file, 'w') as f:
-            json.dump(output, f)
+        
+        # Prepare index output
+        index_output = {
+            token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
+                for p in postings]
+            for token, postings in self.index.items()
+        }
+        
+        # Save documents
+        with open(docs_file, 'w') as f:
+            json.dump(documents_output, f)
             
-        # Get file size
-        file_size_bytes = Path(output_file).stat().st_size
-        file_size_kb = file_size_bytes / 1024
-
-        print("\n==================================")
-        print(f"Total documents indexed: {len(self.documents)}")
-        print(f"Total unique tokens: {len(self.index)}")
-        print(f"Index size: {file_size_kb:.2f} KB")
-        print("==================================\n")
-        print(f"Index saved to {output_file}")
+        # Save index
+        with open(index_file, 'w') as f:
+            json.dump(index_output, f)
+        
+        # Calculate file sizes
+        docs_size_kb = Path(docs_file).stat().st_size / 1024
+        index_size_kb = Path(index_file).stat().st_size / 1024
+        
+        print(f"\n========================================")
+        print(f"Documents indexed:  {len(self.documents)}")
+        print(f"Unique tokens:      {len(self.index)}")
+        print(f"Index file size:    {index_size_kb:.2f} KB")
+        print(f"========================================\n")
+        print(f"Documents saved to {docs_file}")
+        print(f"Index saved to {index_file}")
 
 
 
