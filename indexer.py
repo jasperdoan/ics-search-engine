@@ -5,11 +5,12 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
 
 from utils.tokenizer import tokenize
 from utils.simhash import SimHash
 from utils.constants import DATA_DIR, SIMILARITY_THRESHOLD
+
 
 
 @dataclass
@@ -19,12 +20,14 @@ class Posting:
     importance: int
     tf_idf: float = 0.0
 
+
 @dataclass
 class Document:
     url: str
     content: str
     doc_id: int
     simhash: str = ""
+
 
 class Indexer:
     def __init__(self, data_dir: str = "./TEST"):
@@ -44,6 +47,62 @@ class Indexer:
         return ' '.join(tag.get_text() for tag in important_tags)
 
 
+    def is_near_duplicate(self, content: str, simhash: str) -> bool:
+        """Check if document is a near-duplicate of existing documents"""
+        for existing_doc in self.documents.values():
+            if abs(len(content) - len(existing_doc.content)) < 1000:
+                similarity_score = 1 - self.simhasher.hamming_distance(simhash, existing_doc.simhash) / self.simhasher.b
+                if similarity_score >= SIMILARITY_THRESHOLD:
+                    print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, being {100*similarity_score:.2f}% similar")
+                    return True
+        return False
+
+
+    def create_document(self, data: dict) -> Document:
+        """Create a new Document instance from JSON data"""
+        simhash = self.simhasher.compute_simhash(data['content'])
+        return Document(
+            url=data['url'],
+            content=data['content'],
+            doc_id=self.next_doc_id,
+            simhash=simhash
+        )
+
+
+    def process_tokens(self, text: str, important_text: str) -> Dict[str, Tuple[int, int]]:
+        """Process regular and important tokens to create frequency map"""
+        freq_map = defaultdict(lambda: (0, 0))
+        
+        # Process regular text
+        regular_tokens = tokenize(text)
+        print(f"\tRegular tokens: {len(regular_tokens)}")
+        
+        for token in regular_tokens:
+            count, imp = freq_map[token]
+            freq_map[token] = (count + 1, imp)
+            
+        # Process important text
+        important_tokens = tokenize(important_text)
+        print(f"\tImportant tokens: {len(important_tokens)}")
+        
+        for token in important_tokens:
+            count, imp = freq_map[token]
+            freq_map[token] = (count * 2 if count > 0 else 1, imp + 1)
+            
+        return freq_map
+
+
+    def update_index(self, freq_map: Dict[str, Tuple[int, int]], doc_id: int) -> int:
+        """Update index with new document's tokens"""
+        unique_terms = 0
+        for token, (freq, importance) in freq_map.items():
+            tf_score = 1 + math.log10(freq) if freq > 0 else 0
+            posting = Posting(doc_id, freq, importance, tf_score)
+            self.index[token].append(posting)
+            unique_terms += 1
+        return unique_terms
+
+
     def process_document(self, file_path: Path) -> None:
         """Process a single document and update the index"""
         try:
@@ -52,54 +111,19 @@ class Indexer:
             with open(file_path) as f:
                 data = json.load(f)
             
-            # Calculate SimHash first
-            simhash = self.simhasher.compute_simhash(data['content'])
+            # Create document and check for duplicates
+            doc = self.create_document(data)
+            if self.is_near_duplicate(doc.content, doc.simhash):
+                return
             
-            # Check for near-duplicates
-            for existing_doc in self.documents.values():
-                if abs(len(data['content']) - len(existing_doc.content)) < 1000:  # Only compare similar lengths
-                    if 1 - self.simhasher.hamming_distance(simhash, existing_doc.simhash) / self.simhasher.b >= SIMILARITY_THRESHOLD:
-                        print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, skipping")
-                        return
-            
-            doc = Document(
-                url=data['url'],
-                content=data['content'],
-                doc_id=self.next_doc_id,
-                simhash=simhash
-            )
-            
+            # Extract text content
             soup = BeautifulSoup(doc.content, 'html.parser')
             text = soup.get_text()
             important_text = self.extract_important_text(soup)
             
-            print(f"\tFound {len(important_text.split())} words in important sections")
-            
-            freq_map = defaultdict(lambda: (0, 0))
-            
-            # Process regular text
-            regular_tokens = tokenize(text)
-            print(f"\tRegular tokens: {len(regular_tokens)}")
-            
-            for token in regular_tokens:
-                count, imp = freq_map[token]
-                freq_map[token] = (count + 1, imp)
-                
-            # Process important text
-            important_tokens = tokenize(important_text)
-            print(f"\tImportant tokens: {len(important_tokens)}")
-            
-            for token in important_tokens:
-                count, imp = freq_map[token]
-                freq_map[token] = (count * 2 if count > 0 else 1, imp + 1)
-                
-            # Update index
-            unique_terms = 0
-            for token, (freq, importance) in freq_map.items():
-                tf_score = 1 + math.log10(freq) if freq > 0 else 0
-                posting = Posting(doc.doc_id, freq, importance, tf_score)
-                self.index[token].append(posting)
-                unique_terms += 1
+            # Process tokens and update index
+            freq_map = self.process_tokens(text, important_text)
+            unique_terms = self.update_index(freq_map, doc.doc_id)
             
             print(f"\tAdded {unique_terms} unique terms to index")
             
