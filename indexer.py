@@ -1,3 +1,4 @@
+import re
 import json
 import math
 
@@ -67,11 +68,27 @@ class Indexer:
         return False
 
 
-    def soupify(self, data_content: dict) -> Tuple[BeautifulSoup, str]:
-        """Create a BeautifulSoup object from JSON data"""
-        soup = BeautifulSoup(data_content, 'html.parser')
-        text = soup.get_text()
-        return soup, text
+    def _clean_text(self, text: str) -> str:
+        """
+        Clean and normalize text by removing all special characters and normalizing whitespace
+        using regex pattern matching.
+        """
+        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text) # Replace all non-alphanumeric characters (except spaces) with a space
+        text = re.sub(r'\s+', ' ', text) # Normalize whitespace by replacing multiple spaces with single space
+        return text.strip()
+
+
+    def soupify(self, data: dict) -> Tuple[BeautifulSoup, str]:
+        """Create a BeautifulSoup object from JSON data with encoding-aware content extraction"""
+        soup = BeautifulSoup(data.get('content', ''), 'html.parser')
+        
+        if data.get('encoding', '').lower() == 'utf-8':
+            paragraphs = soup.find_all('p') 
+            if paragraphs:
+                text = ' '.join(p.get_text().strip() for p in paragraphs)
+                return soup, self._clean_text(text)
+        
+        return soup, self._clean_text(soup.get_text())
 
 
     def create_document(self, data: dict, text: str) -> Document:
@@ -125,11 +142,11 @@ class Indexer:
         try:
             print(f"\nProcessing {file_path}")
             
-            with open(file_path) as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
             # Extract text content
-            soup, text = self.soupify(data['content'])
+            soup, text = self.soupify(data)
             important_text = self.extract_important_text(soup)
 
             # Create document and check for duplicates

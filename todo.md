@@ -36,5 +36,7 @@ Misc:
 
 Issues:
     [x] 'research' / 'comput' / 'scienc' tf_idf doesn't seem to save properly or work (?) Its all 0.0
-    [ ] BeautifulSoup parse text gets a lot of date texts like "September 2019\nAugust 2019\nJuly 2019\nJune 2019\nMay 2019\nApril 2019\nMarch 2019\nFebruary 2019\nJanuary 2019\nDecember 2018\nNovember 2018\nOctober 2018\nSeptember 2018\nAugust 2018\nJuly 2018\nJune 2018" so what end up happening is that their simhash is too similar and they get marked as duplicates. Probably because of the below issue.
+    [x] BeautifulSoup parse text gets a lot of date texts like "September 2019\nAugust 2019\nJuly 2019\nJune 2019\nMay 2019\nApril 2019\nMarch 2019\nFebruary 2019\nJanuary 2019\nDecember 2018\nNovember 2018\nOctober 2018\nSeptember 2018\nAugust 2018\nJuly 2018\nJune 2018" so what end up happening is that their simhash is too similar and they get marked as duplicates. Probably because of the below issue.
+    [ ] Need to improve SimHash, noticing some texts that are not similar at all are getting marked as duplicates (says 80% but like they are no where near alike so maybe the hashing is bad, or its just me picking the 2 different doc with so happens to be similar in hash)
+    [ ] Important tags now have equal parts, ideally they should have different weights like 'title' will weight more (1.0), 'h1' (0.5) and 'h2' (0.25), etc...
     [ ] Real HTML pages found out there are full of bugs! Some of the pages in the dataset may not contain any HTML at all and, when they do, it may not be well formed. For example, there might be an open <strong> tag but the associated closing </strong> tag might be missing. While selecting the parser library for your project, please ensure that it can handle broken HTML.
