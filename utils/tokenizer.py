@@ -3,7 +3,7 @@ import nltk
 from nltk.stem import PorterStemmer
 from nltk.tokenize import RegexpTokenizer
 from urllib.parse import urlparse
-from utils.constants import STOP_WORDS
+# from utils.constants import STOP_WORDS
 
 
 
@@ -22,11 +22,14 @@ def tokenize(text):
     stemmer = PorterStemmer()
     
     # Tokenize text into words
-    re_tokenizer = RegexpTokenizer('[a-zA-Z0-9]+')
+    # Words that start and end with alphanumeric characters, 
+    # Can optionally contain apostrophes (') or hyphens (-) in the middle, 
+    # Must be at least 2 characters long
+    re_tokenizer = RegexpTokenizer(r"[a-zA-Z0-9]+[a-zA-Z0-9'-]*[a-zA-Z0-9]+") 
     re_tokens = re_tokenizer.tokenize(text.lower())
 
     # Remove stop words and apply stemming
-    tokens = [stemmer.stem(token) for token in re_tokens if token not in STOP_WORDS]
+    tokens = [stemmer.stem(token) for token in re_tokens]
 
     # Remove single-character tokens
     return [token for token in tokens if len(token) != 1]

@@ -16,7 +16,6 @@ from utils.constants import (
     ANALYST_DIR,
     DEV_DIR,
     SIMILARITY_THRESHOLD,
-    NEAR_DUPLICATE_LENGTH_DIFF,
     DOCS_FILE,
     INDEX_FILE,
     IMPORTANT_HTML_TAGS
@@ -61,20 +60,27 @@ class Indexer:
     def is_near_duplicate(self, content: str, simhash: str) -> bool:
         """Check if document is a near-duplicate of existing documents"""
         for existing_doc in self.documents.values():
-            if abs(len(content) - len(existing_doc.content)) < NEAR_DUPLICATE_LENGTH_DIFF:
-                similarity_score = 1 - self.simhasher.hamming_distance(simhash, existing_doc.simhash) / self.simhasher.b
-                if similarity_score >= SIMILARITY_THRESHOLD:
-                    print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, being {100*similarity_score:.2f}% similar")
-                    return True
+            similarity_score = 1 - self.simhasher.hamming_distance(simhash, existing_doc.simhash) / self.simhasher.b
+            if similarity_score >= SIMILARITY_THRESHOLD:
+                print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, being {100*similarity_score:.2f}% similar")
+                return True
         return False
 
 
-    def create_document(self, data: dict) -> Document:
+    def soupify(self, data_content: dict) -> Tuple[BeautifulSoup, str]:
+        """Create a BeautifulSoup object from JSON data"""
+        soup = BeautifulSoup(data_content, 'html.parser')
+        text = soup.get_text()
+        return soup, text
+
+
+    def create_document(self, data: dict, text: str) -> Document:
         """Create a new Document instance from JSON data"""
-        simhash = self.simhasher.compute_simhash(data['content'])
+        simhash = self.simhasher.compute_simhash(text)
+
         return Document(
             url=data['url'],
-            content=data['content'],
+            content=text,
             doc_id=self.next_doc_id,
             simhash=simhash
         )
@@ -122,15 +128,14 @@ class Indexer:
             with open(file_path) as f:
                 data = json.load(f)
             
+            # Extract text content
+            soup, text = self.soupify(data['content'])
+            important_text = self.extract_important_text(soup)
+
             # Create document and check for duplicates
-            doc = self.create_document(data)
+            doc = self.create_document(data, text)
             if self.is_near_duplicate(doc.content, doc.simhash):
                 return
-            
-            # Extract text content
-            soup = BeautifulSoup(doc.content, 'html.parser')
-            text = soup.get_text()
-            important_text = self.extract_important_text(soup)
             
             # Process tokens and update index
             freq_map = self.process_tokens(text, important_text)
@@ -179,6 +184,7 @@ class Indexer:
             doc_id: {
                 "url": doc.url,
                 "simhash": doc.simhash,
+                "content": doc.content,
                 "length": len(doc.content)
             } for doc_id, doc in self.documents.items()
         }
