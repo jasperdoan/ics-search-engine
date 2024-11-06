@@ -49,3 +49,5 @@ Issues:
     [ ] Important tags now have equal parts, ideally they should have different weights like 'title' will weight more (1.0), 'h1' (0.5) and 'h2' (0.25), etc...
 
     [ ] Real HTML pages found out there are full of bugs! Some of the pages in the dataset may not contain any HTML at all and, when they do, it may not be well formed. For example, there might be an open <strong> tag but the associated closing </strong> tag might be missing. While selecting the parser library for your project, please ensure that it can handle broken HTML.
+
+    [ ] Deal with ascii encoding for some of the json (different format for db_ics, cs_uci)
