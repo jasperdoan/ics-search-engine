@@ -103,10 +103,25 @@ class IndexManager:
 
     def calculate_tf_idf(self, num_docs: int) -> None:
         """Calculate TF-IDF scores for all terms"""
-        for token, postings in self.index.items():
-            idf = math.log10(num_docs / len(postings))
+        # TF portion
+        doc_lengths = defaultdict(int)
+        for _, postings in self.index.items():
             for posting in postings:
-                posting.tf_idf = posting.tf_idf * idf
+                doc_lengths[posting.doc_id] += posting.frequency
+
+        for token, postings in self.index.items():
+            # IDF portion
+            doc_freq = len(postings)  # number of docs containing this term
+            idf = math.log10(num_docs / doc_freq)
+            
+            # Calculate TF-IDF for each term
+            for posting in postings:
+                # TF = frequency of term / total terms in document
+                tf = posting.frequency / doc_lengths[posting.doc_id]
+                weighted_tf = tf * (1 + posting.importance)  
+
+                # TF-IDF score
+                posting.tf_idf = weighted_tf * idf
 
     def save_index(self, path: str) -> None:
         """Save index to file"""

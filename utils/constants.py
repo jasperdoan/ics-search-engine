@@ -31,5 +31,12 @@ MAX_INDEX_SIZE_BYTES = 5 * 1024 * 1024 # 5 MB
 DOCS_FILE = "documents.json" 
 INDEX_FILE = "index.json"
 
-# HTML TAGS
-IMPORTANT_HTML_TAGS = ['b', 'strong', 'h1', 'h2', 'h3', 'title']
+# TAGS
+TAG_WEIGHTS = {
+    'title': 1.0,
+    'h1': 0.8,
+    'h2': 0.6,
+    'h3': 0.4,
+    'b': 0.2,
+    'strong': 0.2
+}

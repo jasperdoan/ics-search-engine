@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 from utils.simhash import SimHash
 from typing import Tuple, Dict
 
+from utils.constants import TAG_WEIGHTS
+
 @dataclass
 class Document:
     url: str
@@ -34,10 +36,15 @@ class DocumentProcessor:
         
         return soup, self._clean_text(soup.get_text())
 
-    def extract_important_text(self, soup: BeautifulSoup, important_tags: list) -> str:
-        """Extract text from important HTML tags"""
-        important_tags = soup.find_all(important_tags)
-        return ' '.join(tag.get_text() for tag in important_tags)
+    def extract_important_text(self, soup: BeautifulSoup) -> Dict[str, float]:
+        """Extract text from important HTML tags with their weights"""
+        weighted_text = {}
+        for tag, weight in TAG_WEIGHTS.items():
+            elements = soup.find_all(tag)
+            for element in elements:
+                text = element.get_text().strip()
+                weighted_text[text] = weight
+        return weighted_text
 
     def create_document(self, data: dict, text: str, doc_id: int) -> Document:
         """Create a new Document instance"""

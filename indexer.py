@@ -10,7 +10,6 @@ from utils.constants import (
     TEST_DIR,
     DOCS_FILE,
     INDEX_FILE,
-    IMPORTANT_HTML_TAGS,
     SIMILARITY_THRESHOLD
 )
 
@@ -40,15 +39,15 @@ class Indexer:
             
             # Process document content
             soup, text = self.doc_processor.soupify(data)
-            important_text = self.doc_processor.extract_important_text(soup, IMPORTANT_HTML_TAGS)
+            weighted_text = self.doc_processor.extract_important_text(soup)
             doc = self.doc_processor.create_document(data, text, self.next_doc_id)
 
             # Check for near-duplicates
             if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, SIMILARITY_THRESHOLD):
                 return
             
-            # Process tokens and update index
-            freq_map = self.token_processor.process_tokens(text, important_text)
+            # Process tokens with weighted important text
+            freq_map = self.token_processor.process_tokens(text, weighted_text)
             unique_terms = self.index_manager.update_index(freq_map, doc.doc_id)
             
             print(f"\tAdded {unique_terms} unique terms to index")
@@ -85,7 +84,6 @@ class Indexer:
             doc_id: {
                 "url": doc.url,
                 "simhash": doc.simhash,
-                "length": len(doc.content)
             } for doc_id, doc in self.documents.items()
         }
         
