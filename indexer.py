@@ -54,6 +54,7 @@ class Indexer:
         self.partial_dir = Path("partial_indexes")
         self.partial_dir.mkdir(exist_ok=True)
         self.partial_index_count = 0
+        self.index_size = sys.getsizeof(self.index)  # Track initial dict size
 
 
     def extract_important_text(self, soup: BeautifulSoup) -> str:
@@ -145,6 +146,16 @@ class Indexer:
         return size
 
 
+    def update_index_size(self, token: str, posting: Posting, adding: bool = True):
+        """Update running index size when adding/removing items"""
+        size_delta = (
+            sys.getsizeof(token) +              # Token string size
+            sys.getsizeof(posting) +            # Posting object size
+            sys.getsizeof(self.index[token])    # List size delta
+        )
+        self.index_size += size_delta if adding else -size_delta
+
+
     def write_partial_index(self) -> None:
         """Write current index to disk as a partial index"""
         if not self.index:
@@ -152,7 +163,7 @@ class Indexer:
             
         partial_path = self.partial_dir / f"partial_{self.partial_index_count}.json"
         
-        # Convert current index to serializable format
+        # Convert and save index
         index_output = {
             token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
                 for p in postings]
@@ -163,7 +174,8 @@ class Indexer:
             json.dump(index_output, f)
             
         self.partial_index_count += 1
-        self.index.clear()  # Clear current index from memory
+        self.index.clear()  # Clear current index
+        self.index_size = sys.getsizeof(self.index)  # Reset size to empty dict
 
 
     def merge_partial_indexes(self) -> None:
@@ -200,13 +212,12 @@ class Indexer:
             tf_score = 1 + math.log10(freq) if freq > 0 else 0
             posting = Posting(doc_id, freq, importance, tf_score)
             self.index[token].append(posting)
+            self.update_index_size(token, posting)  # Track size increase
             unique_terms += 1
             
-            # Check index size and write partial index if needed
-            if self.get_index_size() > MAX_INDEX_SIZE_BYTES:
+            if self.index_size > MAX_INDEX_SIZE_BYTES:
                 print(f"\tIndex size exceeded threshold, writing partial index to disk")
                 self.write_partial_index()
-                
         return unique_terms
 
 
