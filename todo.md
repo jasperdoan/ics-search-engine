@@ -50,11 +50,13 @@ Issues:
     [x] Important tags now have equal parts, ideally they should have different weights like 'title' will weight more (1.0), 'h1' (0.5) and 'h2' (0.25), etc...
         > Added
 
+    [x] tf_idf may not be correct / Need references to see if it looks about right, pref from other students
+        > Fixed
+
+    [x] Size estimate to partition might be inaccurate (just the calculation, nothing wrong with the spliting I think) Need to further testing
+        > Mixed up between text file ascii size and actual size of the data, resolved as it is not an issue
+
     [ ] "XMLParsedAsHTMLWarning: It looks like you're parsing an XML document using an HTML parser. If this really is an HTML document (maybe it's XHTML?), you can ignore or filter this warning. If it's XML, you should know that using an XML parser will be more reliable. To parse this document as XML, make sure you have the lxml package installed, and pass the keyword argument `features="xml"` into the BeautifulSoup constructor."
-
-    [ ] tf_idf may not be correct / Need references to see if it looks about right, pref from other students
-
-    [ ] Size estimate to partition might be inaccurate (just the calculation, nothing wrong with the spliting I think) Need to further testing
 
     [ ] Real HTML pages found out there are full of bugs! Some of the pages in the dataset may not contain any HTML at all and, when they do, it may not be well formed. For example, there might be an open <strong> tag but the associated closing </strong> tag might be missing. While selecting the parser library for your project, please ensure that it can handle broken HTML.
 

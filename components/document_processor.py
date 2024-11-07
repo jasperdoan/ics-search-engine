@@ -43,7 +43,8 @@ class DocumentProcessor:
             elements = soup.find_all(tag)
             for element in elements:
                 text = element.get_text().strip()
-                weighted_text[text] = weight
+                if text:
+                    weighted_text[text] = weighted_text.get(text, 0) + weight
         return weighted_text
 
     def create_document(self, data: dict, text: str, doc_id: int) -> Document:

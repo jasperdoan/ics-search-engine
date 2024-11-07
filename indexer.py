@@ -8,13 +8,15 @@ from components.token_processor import TokenProcessor
 from components.index_manager import IndexManager
 from utils.constants import (
     TEST_DIR,
+    ANALYST_DIR,
+    DEV_DIR,
     DOCS_FILE,
     INDEX_FILE,
     SIMILARITY_THRESHOLD
 )
 
 class Indexer:
-    def __init__(self, data_dir: str = TEST_DIR):
+    def __init__(self, data_dir: str = ANALYST_DIR):
         self.data_dir = Path(data_dir)
         self.next_doc_id = 0
         self.documents: Dict[int, Document] = {}

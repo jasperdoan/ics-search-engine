@@ -24,16 +24,6 @@ class IndexManager:
         self.partial_index_count = 0
         self.index_size = sys.getsizeof(self.index)
 
-    def get_index_size(self) -> int:
-        """Calculate approximate size of current index in bytes"""
-        size = sys.getsizeof(self.index)
-        for token, postings in self.index.items():
-            size += sys.getsizeof(token)
-            size += sys.getsizeof(postings)
-            for posting in postings:
-                size += sys.getsizeof(posting)
-        return size
-
     def update_index(self, freq_map: Dict[str, Tuple[int, int]], doc_id: int) -> int:
         """Update index with new document's tokens"""
         unique_terms = 0
@@ -46,6 +36,7 @@ class IndexManager:
             
             if self.index_size > MAX_INDEX_SIZE_BYTES:
                 print(f"\tIndex size exceeded threshold, writing partial index to disk")
+                print(f"\tCurrent index size (MB): {self.index_size / 1024 / 1024:.2f}")
                 self.write_partial_index()
         return unique_terms
 
@@ -91,15 +82,7 @@ class IndexManager:
                 for doc_id, freq, imp, tf_idf in postings:
                     posting = Posting(doc_id, freq, imp, tf_idf)
                     merged_index[token].append(posting)
-
         self.index = merged_index
-
-    def add_posting(self, token: str, doc_id: int, freq: int, importance: int) -> None:
-        """Add a new posting to the index"""
-        tf_score = 1 + math.log10(freq) if freq > 0 else 0
-        posting = Posting(doc_id, freq, importance, tf_score)
-        self.index[token].append(posting)
-        self.update_index_size(token, posting)
 
     def calculate_tf_idf(self, num_docs: int) -> None:
         """Calculate TF-IDF scores for all terms"""
