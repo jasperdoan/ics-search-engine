@@ -2,6 +2,7 @@ import re
 import json
 import math
 import os
+import sys
 
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -129,16 +130,19 @@ class Indexer:
         return freq_map
 
 
-    def estimate_index_size(self) -> float:
-        """Estimate current index size in MB using approximate calculations"""
-        # Each token string ~32 bytes
-        # Each posting ~20 bytes (int + int + int + float)
-        # Dictionary overhead ~36 bytes per entry
-        size_bytes = sum(
-            36 + len(token) + (len(postings) * 20)
-            for token, postings in self.index.items()
-        )
-        return size_bytes / (1024 * 1024)  # Convert to MB
+    def get_index_size(self) -> int:
+        """Calculate approximate size of current index in bytes"""
+        # Get size of index dict structure
+        size = sys.getsizeof(self.index)
+        
+        # Add size of each token string and its postings list
+        for token, postings in self.index.items():
+            size += sys.getsizeof(token)
+            size += sys.getsizeof(postings)
+            # Add size of each posting object
+            for posting in postings:
+                size += sys.getsizeof(posting)
+        return size
 
 
     def write_partial_index(self) -> None:
@@ -190,27 +194,20 @@ class Indexer:
 
 
     def update_index(self, freq_map: Dict[str, Tuple[int, int]], doc_id: int) -> int:
-        """Update index with size tracking"""
+        """Update index with new document's tokens"""
         unique_terms = 0
         for token, (freq, importance) in freq_map.items():
             tf_score = 1 + math.log10(freq) if freq > 0 else 0
             posting = Posting(doc_id, freq, importance, tf_score)
-            
-            # Update size estimate when adding new entries
-            if token not in self.index:
-                self.current_index_size += 36 + len(token)  # New token overhead
-            self.current_index_size += 20  # New posting size
-            
             self.index[token].append(posting)
             unique_terms += 1
             
-            if self.current_index_size >= MAX_INDEX_SIZE_BYTES:
-                print(f"\tIndex size exceeded threshold ({self.current_index_size/1024/1024:.2f}MB)")
+            # Check index size and write partial index if needed
+            if self.get_index_size() > MAX_INDEX_SIZE_BYTES:
+                print(f"\tIndex size exceeded threshold, writing partial index to disk")
                 self.write_partial_index()
-                self.current_index_size = 0  # Reset after writing
                 
         return unique_terms
-
 
 
     def process_document(self, file_path: Path) -> None:
