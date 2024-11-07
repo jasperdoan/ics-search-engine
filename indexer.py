@@ -1,14 +1,13 @@
 import re
 import json
 import math
+import os
 
 from pathlib import Path
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from collections import defaultdict
 from typing import Dict, List, Set, Tuple
-from multiprocessing import Pool, Manager, cpu_count
-from functools import partial
 
 from utils.tokenizer import tokenize
 from utils.simhash import SimHash
@@ -17,6 +16,7 @@ from utils.constants import (
     ANALYST_DIR,
     DEV_DIR,
     SIMILARITY_THRESHOLD,
+    MAX_INDEX_SIZE_BYTES,
     DOCS_FILE,
     INDEX_FILE,
     IMPORTANT_HTML_TAGS
@@ -50,6 +50,9 @@ class Indexer:
         self.total_files = sum(1 for _ in Path(data_dir).rglob("*.json"))
         self.files_processed = 0
         self.progress_callback = None
+        self.partial_dir = Path("partial_indexes")
+        self.partial_dir.mkdir(exist_ok=True)
+        self.partial_index_count = 0
 
 
     def extract_important_text(self, soup: BeautifulSoup) -> str:
@@ -126,15 +129,88 @@ class Indexer:
         return freq_map
 
 
+    def estimate_index_size(self) -> float:
+        """Estimate current index size in MB using approximate calculations"""
+        # Each token string ~32 bytes
+        # Each posting ~20 bytes (int + int + int + float)
+        # Dictionary overhead ~36 bytes per entry
+        size_bytes = sum(
+            36 + len(token) + (len(postings) * 20)
+            for token, postings in self.index.items()
+        )
+        return size_bytes / (1024 * 1024)  # Convert to MB
+
+
+    def write_partial_index(self) -> None:
+        """Write current index to disk as a partial index"""
+        if not self.index:
+            return
+            
+        partial_path = self.partial_dir / f"partial_{self.partial_index_count}.json"
+        
+        # Convert current index to serializable format
+        index_output = {
+            token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
+                for p in postings]
+            for token, postings in self.index.items()
+        }
+        
+        with open(partial_path, 'w') as f:
+            json.dump(index_output, f)
+            
+        self.partial_index_count += 1
+        self.index.clear()  # Clear current index from memory
+
+
+    def merge_partial_indexes(self) -> None:
+        """Merge all partial indexes into final index"""
+        merged_index = defaultdict(list)
+        
+        # Read and merge each partial index
+        for i in range(self.partial_index_count):
+            partial_path = self.partial_dir / f"partial_{i}.json"
+            with open(partial_path, 'r') as f:
+                partial_data = json.load(f)
+                
+            for token, postings in partial_data.items():
+                for doc_id, freq, imp, tf_idf in postings:
+                    posting = Posting(doc_id, freq, imp, tf_idf)
+                    merged_index[token].append(posting)
+
+            # Remove partial index file after merging
+            # partial_path.unlink()
+
+        self.index = merged_index
+        
+        # Remove partial_indexes directory if empty
+        # try:
+        #     self.partial_dir.rmdir()
+        # except OSError:
+        #     print("Warning: Could not remove partial_indexes directory")
+
+
     def update_index(self, freq_map: Dict[str, Tuple[int, int]], doc_id: int) -> int:
-        """Update index with new document's tokens"""
+        """Update index with size tracking"""
         unique_terms = 0
         for token, (freq, importance) in freq_map.items():
             tf_score = 1 + math.log10(freq) if freq > 0 else 0
             posting = Posting(doc_id, freq, importance, tf_score)
+            
+            # Update size estimate when adding new entries
+            if token not in self.index:
+                self.current_index_size += 36 + len(token)  # New token overhead
+            self.current_index_size += 20  # New posting size
+            
             self.index[token].append(posting)
             unique_terms += 1
+            
+            if self.current_index_size >= MAX_INDEX_SIZE_BYTES:
+                print(f"\tIndex size exceeded threshold ({self.current_index_size/1024/1024:.2f}MB)")
+                self.write_partial_index()
+                self.current_index_size = 0  # Reset after writing
+                
         return unique_terms
+
 
 
     def process_document(self, file_path: Path) -> None:
@@ -191,6 +267,15 @@ class Indexer:
                     if self.progress_callback:
                         progress = (self.files_processed / self.total_files) * 100
                         self.progress_callback(progress)
+        
+        # Write final partial index if needed
+        if self.index:
+            self.write_partial_index()
+            
+        # Merge all partial indexes
+        self.merge_partial_indexes()
+        
+        # Calculate final TF-IDF scores
         self.calculate_tf_idf()
 
 
@@ -201,7 +286,6 @@ class Indexer:
             doc_id: {
                 "url": doc.url,
                 "simhash": doc.simhash,
-                "content": doc.content,
                 "length": len(doc.content)
             } for doc_id, doc in self.documents.items()
         }
