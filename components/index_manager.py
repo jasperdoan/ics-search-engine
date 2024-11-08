@@ -7,7 +7,12 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
-from utils.constants import MAX_INDEX_SIZE_BYTES
+from utils.constants import (
+    MAX_INDEX_SIZE_BYTES, 
+    RANGE_SPLITS,
+    PARTIAL_DIR,
+    RANGE_DIR
+    )
 
 @dataclass
 class Posting:
@@ -19,8 +24,10 @@ class Posting:
 class IndexManager:
     def __init__(self):
         self.index: Dict[str, List[Posting]] = defaultdict(list)
-        self.partial_dir = Path("partial_indexes")
+        self.partial_dir = Path(PARTIAL_DIR)
+        self.range_dir = Path(RANGE_DIR)
         self.partial_dir.mkdir(exist_ok=True)
+        self.range_dir.mkdir(exist_ok=True)
         self.partial_index_count = 0
         self.index_size = sys.getsizeof(self.index)
 
@@ -69,7 +76,7 @@ class IndexManager:
         self.index_size = sys.getsizeof(self.index)
 
     def merge_partial_indexes(self) -> None:
-        """Merge all partial indexes into final index"""
+        """Merge all partial indexes into 1 single final index"""
         merged_index = defaultdict(list)
         
         for i in range(self.partial_index_count):
@@ -82,6 +89,40 @@ class IndexManager:
                     posting = Posting(doc_id, freq, imp, tf_idf)
                     merged_index[token].append(posting)
         self.index = merged_index
+
+    def sort_partial_indexes_by_terms(self) -> None:
+        """Merge partial indexes and split into range-based files"""
+        range_indexes = defaultdict(lambda: defaultdict(list))
+        
+        # During merging all partials, sort by term range
+        for i in range(self.partial_index_count):
+            partial_path = self.partial_dir / f"partial_{i}.json"
+            with open(partial_path, 'r') as f:
+                partial_data = json.load(f)
+                
+            for token, postings in partial_data.items():
+                term_range = self.get_term_range(token)
+                for doc_id, freq, imp, tf_idf in postings:
+                    posting = Posting(doc_id, freq, imp, tf_idf)
+                    range_indexes[term_range][token].append(posting)
+
+        # Save each range to separate file for searching later
+        for term_range, terms in range_indexes.items():
+            range_path = self.range_dir / f"index_{term_range}.json"
+            
+            index_output = {
+                token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
+                    for p in postings]
+                for token, postings in terms.items()
+            }
+            
+            with open(range_path, 'w') as f:
+                json.dump(index_output, f)
+                
+        print("\nIndex ranges created:")
+        for path in self.range_dir.glob("*.json"):
+            size_kb = path.stat().st_size / 1024
+            print(f"- {path.name}: {size_kb:.2f} KB")
 
     def calculate_tf_idf(self, num_docs: int) -> None:
         """Calculate TF-IDF scores for all terms"""
@@ -115,3 +156,17 @@ class IndexManager:
         
         with open(path, 'w') as f:
             json.dump(index_output, f)
+            
+    def get_term_range(self, term: str) -> str:
+        """Determine which range a term belongs to"""
+        if not term:
+            return "misc"
+        
+        first_char = term[0].lower()
+        if not first_char.isalpha():
+            return "misc"
+            
+        for start, end in RANGE_SPLITS:
+            if start <= first_char <= end:
+                return f"{start}_{end}"
+        return "misc"
