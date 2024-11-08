@@ -26,10 +26,17 @@ DEV_DIR = "./DEV"
 # THRESHOLDS
 SIMILARITY_THRESHOLD = 0.85
 MAX_INDEX_SIZE_BYTES = 5 * 1024 * 1024
+RANGE_SPLITS = [
+    ('a', 'c'), ('d', 'f'), ('g', 'i'), ('j', 'l'),
+    ('m', 'o'), ('p', 'r'), ('s', 'u'), ('v', 'z')
+    ]
 
 # FILE PATHS
-DOCS_FILE = "documents.json" 
-INDEX_FILE = "index.json"
+PARTIAL_DIR = "partial_indexes"
+RANGE_DIR = "range_indexes"
+FULL_ANALYTICS_DIR = "full_analytics"
+DOCS_FILE = f"{FULL_ANALYTICS_DIR}/documents.json" 
+INDEX_FILE = f"{FULL_ANALYTICS_DIR}/index.json"
 
 # TAGS
 TAG_WEIGHTS = {

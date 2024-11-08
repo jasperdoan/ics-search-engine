@@ -12,12 +12,15 @@ from utils.constants import (
     DEV_DIR,
     DOCS_FILE,
     INDEX_FILE,
+    FULL_ANALYTICS_DIR,
     SIMILARITY_THRESHOLD
 )
 
 class Indexer:
     def __init__(self, data_dir: str = ANALYST_DIR):
         self.data_dir = Path(data_dir)
+        self.stats_dir = Path(FULL_ANALYTICS_DIR)
+        self.stats_dir.mkdir(exist_ok=True)
         self.next_doc_id = 0
         self.documents: Dict[int, Document] = {}
         
@@ -78,9 +81,10 @@ class Indexer:
         if self.index_manager.index:
             self.index_manager.write_partial_index()
         self.index_manager.merge_partial_indexes()
+        self.index_manager.sort_partial_indexes_by_terms()
         self.index_manager.calculate_tf_idf(len(self.documents))
 
-    def save_index(self) -> None:
+    def save_data(self) -> None:
         """Save documents and index to files"""
         documents_output = {
             doc_id: {
@@ -109,7 +113,7 @@ class Indexer:
 def main():
     indexer = Indexer()
     indexer.build_index()
-    indexer.save_index()
+    indexer.save_data()
 
 if __name__ == "__main__":
     main()

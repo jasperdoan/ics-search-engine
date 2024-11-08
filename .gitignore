@@ -26,6 +26,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+full_analytics/
+partial_indexes/
+range_indexes/
 
 ANALYST/
 DEV/
