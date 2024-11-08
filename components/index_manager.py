@@ -44,8 +44,7 @@ class IndexManager:
         """Update running index size when adding/removing items"""
         size_delta = (
             sys.getsizeof(token) +
-            sys.getsizeof(posting) +
-            sys.getsizeof(self.index[token])
+            sys.getsizeof(posting)
         )
         self.index_size += size_delta if adding else -size_delta
 
@@ -92,7 +91,7 @@ class IndexManager:
             for posting in postings:
                 doc_lengths[posting.doc_id] += posting.frequency
 
-        for token, postings in self.index.items():
+        for _, postings in self.index.items():
             # IDF portion
             doc_freq = len(postings)  # number of docs containing this term
             idf = math.log10(num_docs / doc_freq)
