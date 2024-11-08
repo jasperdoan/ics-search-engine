@@ -118,7 +118,8 @@ class IndexManager:
             
             with open(range_path, 'w') as f:
                 json.dump(index_output, f)
-                
+        
+        print(f"\n========================================")
         print("\nIndex ranges created:")
         for path in self.range_dir.glob("*.json"):
             size_kb = path.stat().st_size / 1024
