@@ -32,12 +32,27 @@ class IndexManager:
         self.partial_index_count = 0
         self.index_size = sys.getsizeof(self.index)
 
+    def _calculate_tf_idf_for_postings(self, postings: List[Posting], documents: Dict[int, Document], num_docs: int) -> List[Posting]:
+        """Generic function to calculate TF-IDF scores for a list of postings"""
+        # IDF calculation
+        doc_freq = len(postings)
+        idf = math.log10(num_docs / doc_freq)
+        
+        # Calculate TF-IDF for each posting
+        for posting in postings:
+            try:
+                tf = posting.frequency / documents[posting.doc_id].token_count
+            except ZeroDivisionError:
+                tf = 0
+            weighted_tf = tf * (1 + posting.importance)
+            posting.tf_idf = weighted_tf * idf
+        return postings
+
     def update_index(self, freq_map: Dict[str, Tuple[int, int]], doc_id: int) -> int:
         """Update index with new document's tokens"""
         unique_terms = 0
         for token, (freq, importance) in freq_map.items():
-            tf_score = 1 + math.log10(freq) if freq > 0 else 0
-            posting = Posting(doc_id, freq, importance, tf_score)
+            posting = Posting(doc_id, freq, importance, 0.0)
             self.index[token].append(posting)
             self.update_index_size(token, posting)  # Track size increase
             unique_terms += 1
@@ -104,19 +119,6 @@ class IndexManager:
             
             with open(range_path, 'w') as f:
                 json.dump(index_output, f)
-
-    def _calculate_tf_idf_for_postings(self, postings: List[Posting], documents: Dict[int, Document], num_docs: int) -> List[Posting]:
-        """Generic function to calculate TF-IDF scores for a list of postings"""
-        # IDF calculation
-        doc_freq = len(postings)
-        idf = math.log10(num_docs / doc_freq)
-        
-        # Calculate TF-IDF for each posting
-        for posting in postings:
-            tf = posting.frequency / documents[posting.doc_id].token_count
-            weighted_tf = tf * (1 + posting.importance)
-            posting.tf_idf = weighted_tf * idf
-        return postings
 
     def calculate_range_tf_idf(self, documents: Dict[int, Document]) -> None:
         """Calculate TF-IDF scores for range indexes"""
