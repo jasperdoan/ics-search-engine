@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from utils.simhash import SimHash
 from typing import Tuple, Dict
 
+from utils.tokenizer import tokenize
 from utils.constants import TAG_WEIGHTS
 
 @dataclass
@@ -48,7 +49,7 @@ class DocumentProcessor:
                     weighted_text[text] = weighted_text.get(text, 0) + weight
         return weighted_text
 
-    def create_document(self, data: dict, text: str, doc_id: int, token_count: int) -> Document:
+    def create_document(self, data: dict, text: str, doc_id: int) -> Document:
         """Create a new Document instance"""
         simhash = self.simhasher.compute_simhash(text)
         return Document(
@@ -56,7 +57,7 @@ class DocumentProcessor:
             content=text,
             doc_id=doc_id,
             simhash=simhash,
-            token_count=token_count
+            token_count=len(tokenize(text))
         )
 
     def is_near_duplicate(self, simhash: str, existing_docs: Dict[int, Document], threshold: float) -> bool:

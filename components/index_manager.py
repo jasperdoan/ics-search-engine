@@ -76,21 +76,6 @@ class IndexManager:
         self.index.clear()
         self.index_size = sys.getsizeof(self.index)
 
-    def merge_partial_indexes(self) -> None:
-        """Merge all partial indexes into 1 single final index"""
-        merged_index = defaultdict(list)
-        
-        for i in range(self.partial_index_count):
-            partial_path = self.partial_dir / f"partial_{i}.json"
-            with open(partial_path, 'r') as f:
-                partial_data = json.load(f)
-                
-            for token, postings in partial_data.items():
-                for doc_id, freq, imp, tf_idf in postings:
-                    posting = Posting(doc_id, freq, imp, tf_idf)
-                    merged_index[token].append(posting)
-        self.index = merged_index
-
     def sort_partial_indexes_by_terms(self) -> None:
         """Merge partial indexes and split into range-based files"""
         range_indexes = defaultdict(lambda: defaultdict(list))
@@ -131,14 +116,7 @@ class IndexManager:
             tf = posting.frequency / documents[posting.doc_id].token_count
             weighted_tf = tf * (1 + posting.importance)
             posting.tf_idf = weighted_tf * idf
-        
         return postings
-
-    def calculate_tf_idf(self, documents: Dict[int, Document]) -> None:
-        """Calculate TF-IDF scores for main index"""
-        num_docs = len(documents)
-        for token, postings in self.index.items():
-            self._calculate_tf_idf_for_postings(postings, documents, num_docs)
 
     def calculate_range_tf_idf(self, documents: Dict[int, Document]) -> None:
         """Calculate TF-IDF scores for range indexes"""
@@ -174,6 +152,22 @@ class IndexManager:
             
             size_kb = range_path.stat().st_size / 1024
             print(f"Updated {range_path.name}: {size_kb:.2f} KB")
+
+    def merge_indexes(self) -> None:
+        """Merge all range index files into a single final index"""
+        merged_index = defaultdict(list)
+        range_files = list(self.range_dir.glob("index_*.json"))
+        for range_path in range_files:
+            try:
+                with open(range_path, 'r') as f:
+                    range_data = json.load(f)
+                for token, postings in range_data.items():
+                    for doc_id, freq, imp, tf_idf in postings:
+                        posting = Posting(doc_id, freq, imp, tf_idf)
+                        merged_index[token].append(posting)
+            except Exception as e:
+                print(f"Error processing {range_path}: {e}")
+        self.index = merged_index
 
     def save_index(self, path: str) -> None:
         """Save index to file"""

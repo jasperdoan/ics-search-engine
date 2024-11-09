@@ -6,7 +6,6 @@ from typing import Dict, List, Callable, Optional
 from components.document_processor import DocumentProcessor, Document
 from components.token_processor import TokenProcessor
 from components.index_manager import IndexManager
-from utils.tokenizer import tokenize
 from utils.constants import (
     TEST_DIR,
     ANALYST_DIR,
@@ -46,7 +45,7 @@ class Indexer:
             # Process document content
             soup, text = self.doc_processor.soupify(data)
             weighted_text = self.doc_processor.extract_important_text(soup)
-            doc = self.doc_processor.create_document(data, text, self.next_doc_id, len(tokenize(text)))
+            doc = self.doc_processor.create_document(data, text, self.next_doc_id)
 
             # Check for near-duplicates
             if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, SIMILARITY_THRESHOLD):
@@ -79,16 +78,12 @@ class Indexer:
                         progress = (self.files_processed / self.total_files) * 100
                         self.progress_callback(progress)
         
+        # Final last write if there's still stuff in index
         if self.index_manager.index:
             self.index_manager.write_partial_index()
         
-        # First merge and sort into ranges
-        self.index_manager.merge_partial_indexes()
-        self.index_manager.sort_partial_indexes_by_terms()
-        
-        # Then calculate TF-IDF for both full and range indexes
-        self.index_manager.calculate_tf_idf(self.documents)
-        self.index_manager.calculate_range_tf_idf(self.documents)
+        self.index_manager.sort_partial_indexes_by_terms()          # Sort into ranges
+        self.index_manager.calculate_range_tf_idf(self.documents)   # Then calculate TF-IDF for range indexes
 
     def save_data(self) -> None:
         """Save documents and index to files"""
@@ -102,6 +97,7 @@ class Indexer:
         with open(DOCS_FILE, 'w') as f:
             json.dump(documents_output, f)
             
+        self.index_manager.merge_indexes()
         self.index_manager.save_index(INDEX_FILE)
         
         # Print statistics
