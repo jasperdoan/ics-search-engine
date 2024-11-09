@@ -119,28 +119,61 @@ class IndexManager:
             
             with open(range_path, 'w') as f:
                 json.dump(index_output, f)
+
+    def _calculate_tf_idf_for_postings(self, postings: List[Posting], documents: Dict[int, Document], num_docs: int) -> List[Posting]:
+        """Generic function to calculate TF-IDF scores for a list of postings"""
+        # IDF calculation
+        doc_freq = len(postings)
+        idf = math.log10(num_docs / doc_freq)
         
-        print(f"\n========================================")
-        print("\nIndex ranges created:")
-        for path in self.range_dir.glob("*.json"):
-            size_kb = path.stat().st_size / 1024
-            print(f"- {path.name}: {size_kb:.2f} KB")
+        # Calculate TF-IDF for each posting
+        for posting in postings:
+            tf = posting.frequency / documents[posting.doc_id].token_count
+            weighted_tf = tf * (1 + posting.importance)
+            posting.tf_idf = weighted_tf * idf
+        
+        return postings
 
     def calculate_tf_idf(self, documents: Dict[int, Document]) -> None:
-        """Calculate TF-IDF scores for all terms using stored token counts"""
+        """Calculate TF-IDF scores for main index"""
         num_docs = len(documents)
+        for token, postings in self.index.items():
+            self._calculate_tf_idf_for_postings(postings, documents, num_docs)
+
+    def calculate_range_tf_idf(self, documents: Dict[int, Document]) -> None:
+        """Calculate TF-IDF scores for range indexes"""
+        num_docs = len(documents)
+        print(f"\n========================================")
+        print("Calculating TF-IDF scores for range indexes...")
         
-        for _, postings in self.index.items():
-            # IDF portion
-            doc_freq = len(postings)  # number of docs containing this term
-            idf = math.log10(num_docs / doc_freq)
+        for range_path in self.range_dir.glob("*.json"):
+            print(f"\nProcessing range file: {range_path.name}")
             
-            # Calculate TF-IDF for each term
-            for posting in postings:
-                # TF = frequency of term / total tokens in document
-                tf = posting.frequency / documents[posting.doc_id].token_count
-                weighted_tf = tf * (1 + posting.importance)
-                posting.tf_idf = weighted_tf * idf
+            with open(range_path, 'r') as f:
+                range_data = json.load(f)
+                
+            updated_range = {}
+            for token, postings in range_data.items():
+                # Convert raw postings to Posting objects
+                posting_objects = [
+                    Posting(doc_id, freq, imp, 0.0)
+                    for doc_id, freq, imp, _ in postings
+                ]
+                
+                # Calculate TF-IDF using shared function
+                updated_postings = self._calculate_tf_idf_for_postings(posting_objects, documents, num_docs)
+                
+                # Convert back to serializable format
+                updated_range[token] = [
+                    (p.doc_id, p.frequency, p.importance, p.tf_idf)
+                    for p in updated_postings
+                ]
+            
+            with open(range_path, 'w') as f:
+                json.dump(updated_range, f)
+            
+            size_kb = range_path.stat().st_size / 1024
+            print(f"Updated {range_path.name}: {size_kb:.2f} KB")
 
     def save_index(self, path: str) -> None:
         """Save index to file"""

@@ -81,9 +81,14 @@ class Indexer:
         
         if self.index_manager.index:
             self.index_manager.write_partial_index()
+        
+        # First merge and sort into ranges
         self.index_manager.merge_partial_indexes()
         self.index_manager.sort_partial_indexes_by_terms()
+        
+        # Then calculate TF-IDF for both full and range indexes
         self.index_manager.calculate_tf_idf(self.documents)
+        self.index_manager.calculate_range_tf_idf(self.documents)
 
     def save_data(self) -> None:
         """Save documents and index to files"""
