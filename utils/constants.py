@@ -25,7 +25,7 @@ DEV_DIR = "./DEV"
 
 # THRESHOLDS
 SIMILARITY_THRESHOLD = 0.85
-MAX_INDEX_SIZE_BYTES = 25 * 1024 * 1024
+MAX_INDEX_SIZE_BYTES = 64 * 1024 * 1024
 RANGE_SPLITS = [
     ('a', 'c'), ('d', 'f'), ('g', 'i'), ('j', 'l'),
     ('m', 'o'), ('p', 'r'), ('s', 'u'), ('v', 'z')
