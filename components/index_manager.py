@@ -7,6 +7,7 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
+from components.document_processor import Document
 from utils.constants import (
     MAX_INDEX_SIZE_BYTES, 
     RANGE_SPLITS,
@@ -125,14 +126,10 @@ class IndexManager:
             size_kb = path.stat().st_size / 1024
             print(f"- {path.name}: {size_kb:.2f} KB")
 
-    def calculate_tf_idf(self, num_docs: int) -> None:
-        """Calculate TF-IDF scores for all terms"""
-        # TF portion
-        doc_lengths = defaultdict(int)
-        for _, postings in self.index.items():
-            for posting in postings:
-                doc_lengths[posting.doc_id] += posting.frequency
-
+    def calculate_tf_idf(self, documents: Dict[int, Document]) -> None:
+        """Calculate TF-IDF scores for all terms using stored token counts"""
+        num_docs = len(documents)
+        
         for _, postings in self.index.items():
             # IDF portion
             doc_freq = len(postings)  # number of docs containing this term
@@ -140,11 +137,9 @@ class IndexManager:
             
             # Calculate TF-IDF for each term
             for posting in postings:
-                # TF = frequency of term / total terms in document
-                tf = posting.frequency / doc_lengths[posting.doc_id]
-                weighted_tf = tf * (1 + posting.importance)  
-
-                # TF-IDF score
+                # TF = frequency of term / total tokens in document
+                tf = posting.frequency / documents[posting.doc_id].token_count
+                weighted_tf = tf * (1 + posting.importance)
                 posting.tf_idf = weighted_tf * idf
 
     def save_index(self, path: str) -> None:

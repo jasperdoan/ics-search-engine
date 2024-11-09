@@ -6,6 +6,7 @@ from typing import Dict, List, Callable, Optional
 from components.document_processor import DocumentProcessor, Document
 from components.token_processor import TokenProcessor
 from components.index_manager import IndexManager
+from utils.tokenizer import tokenize
 from utils.constants import (
     TEST_DIR,
     ANALYST_DIR,
@@ -17,7 +18,7 @@ from utils.constants import (
 )
 
 class Indexer:
-    def __init__(self, data_dir: str = ANALYST_DIR):
+    def __init__(self, data_dir: str = TEST_DIR):
         self.data_dir = Path(data_dir)
         self.stats_dir = Path(FULL_ANALYTICS_DIR)
         self.stats_dir.mkdir(exist_ok=True)
@@ -45,7 +46,7 @@ class Indexer:
             # Process document content
             soup, text = self.doc_processor.soupify(data)
             weighted_text = self.doc_processor.extract_important_text(soup)
-            doc = self.doc_processor.create_document(data, text, self.next_doc_id)
+            doc = self.doc_processor.create_document(data, text, self.next_doc_id, len(tokenize(text)))
 
             # Check for near-duplicates
             if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, SIMILARITY_THRESHOLD):
@@ -82,7 +83,7 @@ class Indexer:
             self.index_manager.write_partial_index()
         self.index_manager.merge_partial_indexes()
         self.index_manager.sort_partial_indexes_by_terms()
-        self.index_manager.calculate_tf_idf(len(self.documents))
+        self.index_manager.calculate_tf_idf(self.documents)
 
     def save_data(self) -> None:
         """Save documents and index to files"""

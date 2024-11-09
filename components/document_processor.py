@@ -13,6 +13,7 @@ class Document:
     content: str
     doc_id: int
     simhash: str = ""
+    token_count: int = 0
 
 class DocumentProcessor:
     def __init__(self):
@@ -47,14 +48,15 @@ class DocumentProcessor:
                     weighted_text[text] = weighted_text.get(text, 0) + weight
         return weighted_text
 
-    def create_document(self, data: dict, text: str, doc_id: int) -> Document:
+    def create_document(self, data: dict, text: str, doc_id: int, token_count: int) -> Document:
         """Create a new Document instance"""
         simhash = self.simhasher.compute_simhash(text)
         return Document(
             url=data['url'],
             content=text,
             doc_id=doc_id,
-            simhash=simhash
+            simhash=simhash,
+            token_count=token_count
         )
 
     def is_near_duplicate(self, simhash: str, existing_docs: Dict[int, Document], threshold: float) -> bool:
