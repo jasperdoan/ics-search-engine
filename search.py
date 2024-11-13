@@ -1,13 +1,13 @@
 import json
 from typing import Dict, List, Union, Tuple
 from components.index_manager import Posting
+from utils.partials_handler import get_term_partial_path
 import re
 import time
 
 SEARCH_KEYWORDS = {"AND"}  # differentiates "AND" for boolean search and "and, And, aNd..." as tokens
 
 
-# Loads all postings in a gigantic dictionary (may make problems later)
 def load_postings(file_path: str) -> Dict[str, List[Posting]]:
     with open(file_path, 'r') as file:
         data = json.load(file)
@@ -21,11 +21,6 @@ def load_postings(file_path: str) -> Dict[str, List[Posting]]:
         postings_dict[term] = postings
 
     return postings_dict
-
-
-
-# load dict (fine for testing, CHANGE LATER)
-postings_dict = load_postings("full_analytics/index.json")
 
 # return query as list of tokens
 def process_query(search_query: str) -> List:
@@ -76,25 +71,32 @@ def get_groups(search_tokens: List[str]) -> List[List[str]]:
     return result
 
 
-def process_results(groups: List[List[str]], all_results: Dict[str, List[Posting]]) -> List[set]:
+
+
+
+def process_results(groups: List[List[str]]) -> List[set]:
     result = []
     
     for group in groups:
         common_doc_ids = None
         
         for keyword in group:
-            postings = all_results.get(keyword, [])
-            
+            partial_path = get_term_partial_path(keyword)
+
+            postings = load_postings(partial_path)[keyword]
+
             doc_ids = {posting.doc_id for posting in postings}
             
             if common_doc_ids is None:
                 common_doc_ids = doc_ids 
             else:
                 common_doc_ids &= doc_ids
-        
+
         result.append(common_doc_ids)
     
     return result
+
+
 
 def main():
 
@@ -103,13 +105,13 @@ def main():
     search_query = "research AND student colleg"
     search_tokens = process_query(search_query)
     groups = get_groups(search_tokens)
-    all_results = fetch_results(search_tokens)
-    results = process_results(groups, all_results)
+    
+    results = process_results(groups)
     print(results)
 
     end_time = time.time()
-    elapsed_time_ms = (end_time - start_time) * 1000
-    print(f"\n\nExecution Time: {elapsed_time_ms:.3f} milliseconds")
+    elapsed_time_ms = (end_time - start_time)
+    print(f"\n\nExecution Time: {elapsed_time_ms:.3f} seconds")
 
 
 if __name__ == "__main__":
