@@ -7,7 +7,13 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
-from utils.constants import MAX_INDEX_SIZE_BYTES
+from components.document_processor import Document
+from utils.constants import (
+    MAX_INDEX_SIZE_BYTES, 
+    RANGE_SPLITS,
+    PARTIAL_DIR,
+    RANGE_DIR
+    )
 
 @dataclass
 class Posting:
@@ -19,17 +25,34 @@ class Posting:
 class IndexManager:
     def __init__(self):
         self.index: Dict[str, List[Posting]] = defaultdict(list)
-        self.partial_dir = Path("partial_indexes")
+        self.partial_dir = Path(PARTIAL_DIR)
+        self.range_dir = Path(RANGE_DIR)
         self.partial_dir.mkdir(exist_ok=True)
+        self.range_dir.mkdir(exist_ok=True)
         self.partial_index_count = 0
         self.index_size = sys.getsizeof(self.index)
+
+    def _calculate_tf_idf_for_postings(self, postings: List[Posting], documents: Dict[int, Document], num_docs: int) -> List[Posting]:
+        """Generic function to calculate TF-IDF scores for a list of postings"""
+        # IDF calculation
+        doc_freq = len(postings)
+        idf = math.log10(num_docs / doc_freq)
+        
+        # Calculate TF-IDF for each posting
+        for posting in postings:
+            try:
+                tf = posting.frequency / documents[posting.doc_id].token_count
+            except ZeroDivisionError:
+                tf = 0
+            weighted_tf = tf * (1 + posting.importance)
+            posting.tf_idf = weighted_tf * idf
+        return postings
 
     def update_index(self, freq_map: Dict[str, Tuple[int, int]], doc_id: int) -> int:
         """Update index with new document's tokens"""
         unique_terms = 0
         for token, (freq, importance) in freq_map.items():
-            tf_score = 1 + math.log10(freq) if freq > 0 else 0
-            posting = Posting(doc_id, freq, importance, tf_score)
+            posting = Posting(doc_id, freq, importance, 0.0)
             self.index[token].append(posting)
             self.update_index_size(token, posting)  # Track size increase
             unique_terms += 1
@@ -44,8 +67,7 @@ class IndexManager:
         """Update running index size when adding/removing items"""
         size_delta = (
             sys.getsizeof(token) +
-            sys.getsizeof(posting) +
-            sys.getsizeof(self.index[token])
+            sys.getsizeof(posting)
         )
         self.index_size += size_delta if adding else -size_delta
 
@@ -69,42 +91,85 @@ class IndexManager:
         self.index.clear()
         self.index_size = sys.getsizeof(self.index)
 
-    def merge_partial_indexes(self) -> None:
-        """Merge all partial indexes into final index"""
-        merged_index = defaultdict(list)
+    def sort_partial_indexes_by_terms(self) -> None:
+        """Merge partial indexes and split into range-based files"""
+        range_indexes = defaultdict(lambda: defaultdict(list))
         
+        # During merging all partials, sort by term range
         for i in range(self.partial_index_count):
             partial_path = self.partial_dir / f"partial_{i}.json"
             with open(partial_path, 'r') as f:
                 partial_data = json.load(f)
                 
             for token, postings in partial_data.items():
+                term_range = self.get_term_range(token)
                 for doc_id, freq, imp, tf_idf in postings:
                     posting = Posting(doc_id, freq, imp, tf_idf)
-                    merged_index[token].append(posting)
-        self.index = merged_index
+                    range_indexes[term_range][token].append(posting)
 
-    def calculate_tf_idf(self, num_docs: int) -> None:
-        """Calculate TF-IDF scores for all terms"""
-        # TF portion
-        doc_lengths = defaultdict(int)
-        for _, postings in self.index.items():
-            for posting in postings:
-                doc_lengths[posting.doc_id] += posting.frequency
-
-        for token, postings in self.index.items():
-            # IDF portion
-            doc_freq = len(postings)  # number of docs containing this term
-            idf = math.log10(num_docs / doc_freq)
+        # Save each range to separate file for searching later
+        for term_range, terms in range_indexes.items():
+            range_path = self.range_dir / f"index_{term_range}.json"
             
-            # Calculate TF-IDF for each term
-            for posting in postings:
-                # TF = frequency of term / total terms in document
-                tf = posting.frequency / doc_lengths[posting.doc_id]
-                weighted_tf = tf * (1 + posting.importance)  
+            index_output = {
+                token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
+                    for p in postings]
+                for token, postings in terms.items()
+            }
+            
+            with open(range_path, 'w') as f:
+                json.dump(index_output, f)
 
-                # TF-IDF score
-                posting.tf_idf = weighted_tf * idf
+    def calculate_range_tf_idf(self, documents: Dict[int, Document]) -> None:
+        """Calculate TF-IDF scores for range indexes"""
+        num_docs = len(documents)
+        print(f"\n========================================")
+        print("Calculating TF-IDF scores for range indexes...")
+        
+        for range_path in self.range_dir.glob("*.json"):
+            print(f"\nProcessing range file: {range_path.name}")
+            
+            with open(range_path, 'r') as f:
+                range_data = json.load(f)
+                
+            updated_range = {}
+            for token, postings in range_data.items():
+                # Convert raw postings to Posting objects
+                posting_objects = [
+                    Posting(doc_id, freq, imp, 0.0)
+                    for doc_id, freq, imp, _ in postings
+                ]
+                
+                # Calculate TF-IDF using shared function
+                updated_postings = self._calculate_tf_idf_for_postings(posting_objects, documents, num_docs)
+                
+                # Convert back to serializable format
+                updated_range[token] = [
+                    (p.doc_id, p.frequency, p.importance, p.tf_idf)
+                    for p in updated_postings
+                ]
+            
+            with open(range_path, 'w') as f:
+                json.dump(updated_range, f)
+            
+            size_kb = range_path.stat().st_size / 1024
+            print(f"Updated {range_path.name}: {size_kb:.2f} KB")
+
+    def merge_indexes(self) -> None:
+        """Merge all range index files into a single final index"""
+        merged_index = defaultdict(list)
+        range_files = list(self.range_dir.glob("index_*.json"))
+        for range_path in range_files:
+            try:
+                with open(range_path, 'r') as f:
+                    range_data = json.load(f)
+                for token, postings in range_data.items():
+                    for doc_id, freq, imp, tf_idf in postings:
+                        posting = Posting(doc_id, freq, imp, tf_idf)
+                        merged_index[token].append(posting)
+            except Exception as e:
+                print(f"Error processing {range_path}: {e}")
+        self.index = merged_index
 
     def save_index(self, path: str) -> None:
         """Save index to file"""
@@ -116,3 +181,17 @@ class IndexManager:
         
         with open(path, 'w') as f:
             json.dump(index_output, f)
+            
+    def get_term_range(self, term: str) -> str:
+        """Determine which range a term belongs to"""
+        if not term:
+            return "misc"
+        
+        first_char = term[0].lower()
+        if not first_char.isalpha():
+            return "misc"
+            
+        for start, end in RANGE_SPLITS:
+            if start <= first_char <= end:
+                return f"{start}_{end}"
+        return "misc"

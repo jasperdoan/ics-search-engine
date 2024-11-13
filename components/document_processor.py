@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from utils.simhash import SimHash
 from typing import Tuple, Dict
 
+from utils.tokenizer import tokenize
 from utils.constants import TAG_WEIGHTS
 
 @dataclass
@@ -13,6 +14,7 @@ class Document:
     content: str
     doc_id: int
     simhash: str = ""
+    token_count: int = 0
 
 class DocumentProcessor:
     def __init__(self):
@@ -54,7 +56,8 @@ class DocumentProcessor:
             url=data['url'],
             content=text,
             doc_id=doc_id,
-            simhash=simhash
+            simhash=simhash,
+            token_count=len(tokenize(text))
         )
 
     def is_near_duplicate(self, simhash: str, existing_docs: Dict[int, Document], threshold: float) -> bool:
