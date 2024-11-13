@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from indexer import Indexer
 
+from search import SearchEngine
 from utils.constants import (
     TEST_DIR,
     ANALYST_DIR,
@@ -38,9 +39,10 @@ def load_json_data():
 def display_search_results(results, query_time):
     st.write(f"Found {len(results)} results ({query_time:.3f} seconds)")
     
-    for rank, (url, score, snippet) in enumerate(results, 1):
-        with st.expander(f"{rank}. {url} (Score: {score:.3f})"):
-            st.markdown(f"{snippet}")
+    for rank, result in enumerate(results, 1):
+        with st.expander(f"{rank}. {result.url} (Score: {result.score:.3f})"):
+            snippet = f"Matched terms: {', '.join(result.matched_terms)}"
+            st.markdown(snippet)
 
 
 def main():
@@ -101,6 +103,10 @@ def main():
             st.error("No index file found. Please build the index first.")
 
     # Search
+    if 'search_engine' not in st.session_state:
+        st.session_state.search_engine = SearchEngine()
+
+    # Search interface
     col1, col2 = st.columns([5, 1])
     with col1:
         query = st.text_input("Enter your search query:")
@@ -110,22 +116,13 @@ def main():
         
     if query:
         if load_json_data():
-            # Load the search engine here
-            # =============================
-
-
-
-            # =============================
             with st.spinner("Searching..."):
                 start_time = time.time()
-                # Do the search here
-                # =============================
-
-                results = [("https://www.gunwoogithub.com", 0.85, "teacher john likes street food curry")] * 5
-
-                # =============================
-                query_time = time.time() - start_time
                 
+                # Perform search
+                results = st.session_state.search_engine.search(query, max_results)
+                
+                query_time = time.time() - start_time
                 display_search_results(results, query_time)             
         else:
             st.error("Search index not found. Please build the index first.")
