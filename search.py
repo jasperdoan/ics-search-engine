@@ -1,9 +1,9 @@
-# search.py
-
 import json
 import math
 import time
+import numpy as np
 
+from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
@@ -35,7 +35,7 @@ class SearchEngine:
         except FileNotFoundError:
             return {}
 
-    def _compute_query_vector(self, query_terms: List[str]) -> Dict[str, float]:
+    def _compute_query_freq_term(self, query_terms: List[str]) -> Dict[str, float]:
         """Compute normalized term frequencies for query terms"""
         query_vector = defaultdict(float)
         term_freq = defaultdict(int)
@@ -52,9 +52,31 @@ class SearchEngine:
 
         return query_vector
 
+    def _compute_vectors(self, query_terms: List[str], doc_scores: Dict[int, Tuple[float, set]]) -> Tuple[np.ndarray, np.ndarray]:
+        """Convert query and documents into TF-IDF vectors for cosine similarity"""
+        # Get all unique terms
+        all_terms = set(query_terms)
+        for _, terms in doc_scores.values():
+            all_terms.update(terms)
+        term_to_idx = {term: idx for idx, term in enumerate(all_terms)}
+        
+        # Create query vector
+        query_vector = np.zeros(len(term_to_idx))
+        for term in query_terms:
+            if term in term_to_idx:
+                query_vector[term_to_idx[term]] = 1
+                
+        # Create document vectors matrix
+        doc_vectors = np.zeros((len(doc_scores), len(term_to_idx)))
+        for i, (doc_id, (score, terms)) in enumerate(doc_scores.items()):
+            for term in terms:
+                if term in term_to_idx:
+                    doc_vectors[i, term_to_idx[term]] = score
+                    
+        return query_vector.reshape(1, -1), doc_vectors
+
     def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
-        # Process query
-        query_terms = list(set(tokenize(query)))
+        query_terms = tokenize(query)
         if not query_terms:
             return []
             
@@ -64,31 +86,38 @@ class SearchEngine:
         doc_scores: Dict[int, Tuple[float, set]] = defaultdict(lambda: (0.0, set()))
         
         # Calculate query vector
-        query_vector = self._compute_query_vector(query_terms)
+        query_vector = self._compute_query_freq_term(query_terms)
         
         # Process each query term
         for term in query_terms:
-            # Load postings for this term
             postings = self._load_term_postings(term)
             if not postings:
                 continue
                 
-            # Update document scores
             for doc_id, freq, imp, tf_idf in postings:
                 score, terms = doc_scores[doc_id]
                 doc_scores[doc_id] = (score + (tf_idf * query_vector[term]), terms | {term})
         
-        # Filter for docs containing all terms (AND semantics)
-        results = []
-        for doc_id, (score, matched_terms) in doc_scores.items():
-            if len(matched_terms) == len(query_terms):  # Must match all terms
-                results.append(SearchResult(
-                    url=self.documents[str(doc_id)]["url"],
-                    score=score,
-                    matched_terms=list(matched_terms)
-                ))
+        if not doc_scores:
+            return []
+            
+        # Compute cosine similarity
+        q_vec, doc_vecs = self._compute_vectors(query_terms, doc_scores)
+        similarities = cosine_similarity(q_vec, doc_vecs)[0]
         
-        # Sort by score descending
+        # Combine tf-idf scores with cosine similarity
+        results = []
+        for i, (doc_id, (tf_idf_score, matched_terms)) in enumerate(doc_scores.items()):
+            combined_score = 0.5 * tf_idf_score + 0.5 * similarities[i]
+            results.append(
+                SearchResult(
+                    url=self.documents[str(doc_id)]["url"],
+                    score=combined_score,
+                    matched_terms=list(matched_terms)
+                )
+            )
+        
+        # Sort by combined score
         results.sort(key=lambda x: x.score, reverse=True)
         return results[:max_results]
 
@@ -97,7 +126,7 @@ def main():
     
     while True:
         query = input("\nEnter search query (or 'quit' to exit): ").strip()
-        if query.lower() == 'quit':
+        if query.lower() == 'q':
             break
             
         start_time = time.time()
@@ -112,6 +141,7 @@ def main():
         for i, result in enumerate(results, 1):
             print(f"\n{i}. {result.url}")
             print(f"   Score: {result.score:.4f}")
+            print(f"   Matched terms: {result.matched_terms}")
         print(f"\nSearch completed in {end_time - start_time:.4f} seconds")
 
 if __name__ == "__main__":

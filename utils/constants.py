@@ -40,10 +40,10 @@ INDEX_FILE = f"{FULL_ANALYTICS_DIR}/index.json"
 
 # TAGS
 TAG_WEIGHTS = {
-    'title': 1.0,
-    'h1': 0.8,
-    'h2': 0.6,
-    'h3': 0.4,
-    'b': 0.2,
-    'strong': 0.2
+    'title': 2.0,
+    'h1': 1.5,
+    'h2': 1,
+    'h3': 0.75,
+    'b': 0.5,
+    'strong': 0.5
 }
