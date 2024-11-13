@@ -25,7 +25,7 @@ def load_postings(file_path: str) -> Dict[str, List[Posting]]:
 
 
 # load dict (fine for testing, CHANGE LATER)
-postings_dict = load_postings("index.json")
+postings_dict = load_postings("full_analytics/index.json")
 
 # return query as list of tokens
 def process_query(search_query: str) -> List:
@@ -53,7 +53,7 @@ def fetch_results(search_tokens: List) -> Dict:
     return all_results
 
 # return list of lists: each list is keywords connected by an AND
-def get_pairs(search_tokens: List[str]) -> List[List[str]]:
+def get_groups(search_tokens: List[str]) -> List[List[str]]:
     result = []
     current_group = []
     last_was_and = True
@@ -76,13 +76,13 @@ def get_pairs(search_tokens: List[str]) -> List[List[str]]:
     return result
 
 
-def process_results(pairs: List[List[str]], all_results: Dict[str, List[Posting]]) -> List[set]:
+def process_results(groups: List[List[str]], all_results: Dict[str, List[Posting]]) -> List[set]:
     result = []
     
-    for pair in pairs:
+    for group in groups:
         common_doc_ids = None
         
-        for keyword in pair:
+        for keyword in group:
             postings = all_results.get(keyword, [])
             
             doc_ids = {posting.doc_id for posting in postings}
@@ -102,9 +102,9 @@ def main():
 
     search_query = "research AND student colleg"
     search_tokens = process_query(search_query)
-    pairs = get_pairs(search_tokens)
+    groups = get_groups(search_tokens)
     all_results = fetch_results(search_tokens)
-    results = process_results(pairs, all_results)
+    results = process_results(groups, all_results)
     print(results)
 
     end_time = time.time()
