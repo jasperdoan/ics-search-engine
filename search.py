@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 from collections import defaultdict
+from functools import lru_cache
 
 from utils.tokenizer import tokenize
 from utils.constants import RANGE_DIR, DOCS_FILE
@@ -25,6 +26,7 @@ class SearchEngine:
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
             
+    @lru_cache(maxsize=1000)
     def _load_term_postings(self, term: str) -> Dict:
         """Load postings for a specific term from its partial index"""
         partial_path = get_term_partial_path(term)
