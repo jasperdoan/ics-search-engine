@@ -1,18 +1,20 @@
 import json
-import math
 import time
 import numpy as np
 
-from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.sparse import csr_matrix
 from functools import lru_cache
 
-from utils.tokenizer import tokenize
+from utils.tokenizer import tokenize, query_tokenize
 from utils.constants import RANGE_DIR, DOCS_FILE
 from utils.partials_handler import get_term_partial_path
+
+
 
 @dataclass
 class SearchResult:
@@ -20,13 +22,14 @@ class SearchResult:
     score: float
     matched_terms: List[str]
 
+
 class SearchEngine:
     def __init__(self):
         # Load document metadata
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
             
-    @lru_cache(maxsize=1000)
+    @lru_cache(maxsize=1000)    # Cache partial index loads / kinda like memoization as given as example in the doc!!!
     def _load_term_postings(self, term: str) -> Dict:
         """Load postings for a specific term from its partial index"""
         partial_path = get_term_partial_path(term)
@@ -56,9 +59,6 @@ class SearchEngine:
 
     def _compute_vectors(self, query_terms: List[str], doc_scores: Dict[int, Tuple[float, set]]) -> Tuple[np.ndarray, np.ndarray]:
         """Vectorized query and document vector computation"""
-        # Create sparse matrices for efficiency
-        from scipy.sparse import csr_matrix
-        
         # Get all terms and create mapping
         all_terms = list(set(query_terms) | {term for _, terms in doc_scores.values() for term in terms})
         term_to_idx = {term: idx for idx, term in enumerate(all_terms)}
@@ -71,8 +71,7 @@ class SearchEngine:
         query_data = np.ones(len(query_terms))
         query_indices = [term_to_idx[term] for term in query_terms]
         query_indptr = np.array([0, len(query_terms)])
-        query_vector = csr_matrix((query_data, query_indices, query_indptr), 
-                                shape=(1, n_terms))
+        query_vector = csr_matrix((query_data, query_indices, query_indptr), shape=(1, n_terms))
         
         # Create document vectors efficiently
         doc_data = []
@@ -86,13 +85,12 @@ class SearchEngine:
             doc_indices.extend(term_indices)
             doc_indptr.append(len(doc_indices))
         
-        doc_vectors = csr_matrix((doc_data, doc_indices, doc_indptr),
-                            shape=(n_docs, n_terms))
+        doc_vectors = csr_matrix((doc_data, doc_indices, doc_indptr), shape=(n_docs, n_terms))
         
         return query_vector, doc_vectors
 
     def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
-        query_terms = tokenize(query)
+        query_terms = query_tokenize(query)
         if not query_terms:
             return []
             
