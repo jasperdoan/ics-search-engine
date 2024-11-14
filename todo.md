@@ -84,6 +84,9 @@ Issues:
 
     [ ] Deal with ascii encoding for some of the json (different format for db_ics, cs_uci)
 
-    [ ] https://www.ics.uci.edu/~kay/wordlist.txt is #1 search for non-conventional words / Encountering a situation where a page with a comprehensive word list is being ranked highly for queries involving rare or unique words. This behavior is literally keyword stuffing from quiz1, this really influence the tf-idf ranking if the word is rare in other documents.
+    [ ] Certain sites appears #1 search for non-conventional words / Encountering a situation where a page with a comprehensive word list is being ranked highly for queries involving rare or unique words. This behavior is literally keyword stuffing from quiz1, this really influence the tf-idf ranking if the word is rare in other documents. Listed below:
+        > https://www.ics.uci.edu/~kay/wordlist.txt 
+        > https://ics.uci.edu/~kay/courses/h22/hw/DVD.txt 
+        > https://ics.uci.edu/~kay/courses/h22/hw/wordlist-random.txt
 
     [ ] https://www.ics.uci.edu/~ziv/ooad/intro_to_se/sld027.htm site is just horrible and not sure what it is reading but appears on query "master of computer science" alot, but has nothing to do with mse. Was considering to be low value and unreadable but that link was the exception. https://www.ics.uci.edu/~ziv/ooad/intro_to_se/tsld027.htm is a lot better but still doesn't show up alot. I'm assuming the former site is only able to spit out the title (3 words), and so it gives massive point boost for tf-idf. That's why it shows up high for MSE queries

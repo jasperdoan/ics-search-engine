@@ -31,13 +31,12 @@ class SearchEngine:
             
 
     @lru_cache(maxsize=1000)    # Cache partial index loads / kinda like memoization as given as example in the doc!!!
-    def _load_term_postings(self, term: str) -> Dict:
+    def _load_term_postings(self, partial_path: str) -> Dict:
         """Load postings for a specific term from its partial index"""
-        partial_path = get_term_partial_path(term)
         try:
             with open(partial_path, 'r') as f:
                 partial_index = json.load(f)
-                return partial_index.get(term, {})
+                return partial_index
         except FileNotFoundError:
             return {}
 
@@ -119,7 +118,9 @@ class SearchEngine:
         
         # Process each query term
         for term in query_terms:
-            postings = self._load_term_postings(term)
+            partial_path = get_term_partial_path(term)
+            partial_index = self._load_term_postings(partial_path)
+            postings = partial_index.get(term, {})
             if not postings:
                 continue
                 
