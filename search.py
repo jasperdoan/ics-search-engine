@@ -53,27 +53,41 @@ class SearchEngine:
         return query_vector
 
     def _compute_vectors(self, query_terms: List[str], doc_scores: Dict[int, Tuple[float, set]]) -> Tuple[np.ndarray, np.ndarray]:
-        """Convert query and documents into TF-IDF vectors for cosine similarity"""
-        # Get all unique terms
-        all_terms = set(query_terms)
-        for _, terms in doc_scores.values():
-            all_terms.update(terms)
+        """Vectorized query and document vector computation"""
+        # Create sparse matrices for efficiency
+        from scipy.sparse import csr_matrix
+        
+        # Get all terms and create mapping
+        all_terms = list(set(query_terms) | {term for _, terms in doc_scores.values() for term in terms})
         term_to_idx = {term: idx for idx, term in enumerate(all_terms)}
         
-        # Create query vector
-        query_vector = np.zeros(len(term_to_idx))
-        for term in query_terms:
-            if term in term_to_idx:
-                query_vector[term_to_idx[term]] = 1
-                
-        # Create document vectors matrix
-        doc_vectors = np.zeros((len(doc_scores), len(term_to_idx)))
-        for i, (doc_id, (score, terms)) in enumerate(doc_scores.items()):
-            for term in terms:
-                if term in term_to_idx:
-                    doc_vectors[i, term_to_idx[term]] = score
-                    
-        return query_vector.reshape(1, -1), doc_vectors
+        # Initialize sparse matrices
+        n_terms = len(term_to_idx)
+        n_docs = len(doc_scores)
+        
+        # Create query vector efficiently
+        query_data = np.ones(len(query_terms))
+        query_indices = [term_to_idx[term] for term in query_terms]
+        query_indptr = np.array([0, len(query_terms)])
+        query_vector = csr_matrix((query_data, query_indices, query_indptr), 
+                                shape=(1, n_terms))
+        
+        # Create document vectors efficiently
+        doc_data = []
+        doc_indices = []
+        doc_indptr = [0]
+        
+        for doc_id, (score, terms) in doc_scores.items():
+            term_indices = [term_to_idx[term] for term in terms]
+            term_scores = [score] * len(terms)
+            doc_data.extend(term_scores)
+            doc_indices.extend(term_indices)
+            doc_indptr.append(len(doc_indices))
+        
+        doc_vectors = csr_matrix((doc_data, doc_indices, doc_indptr),
+                            shape=(n_docs, n_terms))
+        
+        return query_vector, doc_vectors
 
     def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
         query_terms = tokenize(query)
