@@ -113,8 +113,9 @@ class SearchEngine:
         # Track documents and their scores
         doc_scores: Dict[int, Tuple[float, set]] = defaultdict(lambda: (0.0, set()))
         
-        # Calculate query vector
+        # Calculate query vector 
         query_vector = self._compute_query_freq_term(query_terms)
+        total_query_terms = len(query_terms)
         
         # Process each query term
         for term in query_terms:
@@ -124,7 +125,12 @@ class SearchEngine:
                 
             for doc_id, freq, imp, tf_idf in postings:
                 score, terms = doc_scores[doc_id]
-                doc_scores[doc_id] = (score + (tf_idf * query_vector[term]), terms | {term})
+                # Add term match bonus based on % of query terms matched
+                match_bonus = len(terms | {term}) / total_query_terms
+                doc_scores[doc_id] = (
+                    score + (tf_idf * query_vector[term]), 
+                    terms | {term}
+                )
         
         if not doc_scores:
             return []
@@ -136,7 +142,13 @@ class SearchEngine:
         # Combine tf-idf scores with cosine similarity
         results = []
         for i, (doc_id, (tf_idf_score, matched_terms)) in enumerate(doc_scores.items()):
-            combined_score = 0.5 * tf_idf_score + 0.5 * similarities[i]
+            # Boost documents matching more query terms
+            term_match_boost = len(matched_terms) / total_query_terms
+            combined_score = (
+                0.2 * tf_idf_score + 
+                0.2 * similarities[i] +
+                0.6 * term_match_boost  # Make queries with more matched terms are more relevant
+            )
             results.append(
                 SearchResult(
                     url=self.documents[str(doc_id)]["url"],

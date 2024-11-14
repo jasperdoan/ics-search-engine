@@ -32,6 +32,7 @@ Operational constraints:
     [x] Typically, the cloud servers/containers that run search engines don’t have a lot of memory, but they need to handle large amounts of data. As such, you must design and implement your programs as if you are dealing with very large amounts of data, so large that you cannot hold the inverted index all in memory. Your indexer must offload the inverted index hash map from main memory to a partial index on disk at least 3 times during index construction; those partial indexes should be merged in the end. 
     [x] Optionally, after or during merging, they can also be split into separate index files with term ranges. similarly, your search component must not load the entire inverted index in main memory. Instead, it must read the postings from the index(es) files on disk. The TAs will check that both of these things are happening.
 
+
 ------------------------------------------------------------------------------------------------------------------------------------------
 **Improvements Ideas**
     [x] Query Optimization: Optimize how you handle queries. For instance, if you have longer queries, try to reduce the number of postings lists you need to access by using techniques like query rewriting or term-at-a-time processing.
@@ -44,11 +45,14 @@ Operational constraints:
 
     [ ] Threshold Methods: Implement threshold methods to stop processing once you have enough evidence that certain documents are not going to be in the top results. This can save time by avoiding unnecessary calculations.
 
+    [ ] Make more partials range indexes: Instead of a-c, d-f, etc... lets just do 1 term per json or 2 terms per json. I've noticed a significant time improvement from purely reading the full index vs partial. So maybe it might shave off more time for us who knows.
+
+
 ------------------------------------------------------------------------------------------------------------------------------------------
 **GOING THE EXTRA 7%!!!**
 Misc:
     [x] Look into text indexing libraries such as Lucene, PyLucene, or ElasticSearch (might make our lives easier)
-        > Decided to not use it
+        > Can't use it lol
 
     [ ] Improve SimHash if possible but its the least of our priorities
 
@@ -79,3 +83,7 @@ Issues:
     [ ] "XMLParsedAsHTMLWarning: It looks like you're parsing an XML document using an HTML parser. If this really is an HTML document (maybe it's XHTML?), you can ignore or filter this warning. If it's XML, you should know that using an XML parser will be more reliable. To parse this document as XML, make sure you have the lxml package installed, and pass the keyword argument `features="xml"` into the BeautifulSoup constructor."
 
     [ ] Deal with ascii encoding for some of the json (different format for db_ics, cs_uci)
+
+    [ ] https://www.ics.uci.edu/~kay/wordlist.txt is #1 search for non-conventional words / Encountering a situation where a page with a comprehensive word list is being ranked highly for queries involving rare or unique words. This behavior is literally keyword stuffing from quiz1, this really influence the tf-idf ranking if the word is rare in other documents.
+
+    [ ] https://www.ics.uci.edu/~ziv/ooad/intro_to_se/sld027.htm site is just horrible and not sure what it is reading but appears on query "master of computer science" alot, but has nothing to do with mse. Was considering to be low value and unreadable but that link was the exception. https://www.ics.uci.edu/~ziv/ooad/intro_to_se/tsld027.htm is a lot better but still doesn't show up alot. I'm assuming the former site is only able to spit out the title (3 words), and so it gives massive point boost for tf-idf. That's why it shows up high for MSE queries
