@@ -23,12 +23,13 @@ class SearchResult:
     matched_terms: List[str]
 
 
+
 class SearchEngine:
     def __init__(self):
-        # Load document metadata
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
             
+
     @lru_cache(maxsize=1000)    # Cache partial index loads / kinda like memoization as given as example in the doc!!!
     def _load_term_postings(self, term: str) -> Dict:
         """Load postings for a specific term from its partial index"""
@@ -40,8 +41,17 @@ class SearchEngine:
         except FileNotFoundError:
             return {}
 
+
     def _compute_query_freq_term(self, query_terms: List[str]) -> Dict[str, float]:
-        """Compute normalized term frequencies for query terms"""
+        """
+        Compute normalized term frequencies for query terms
+        This is to normalizes query term frequencies to avoid bias from repeated terms
+        Any repeated term in the query will dominate scoring, and is skewed by repeatition. By normalizing:
+            - Fair weighting of terms
+            - Scale-independent scoring
+            - More accurate relevance ranking
+            - Resistance to keyword stuffing
+        """
         query_vector = defaultdict(float)
         term_freq = defaultdict(int)
         
@@ -57,8 +67,12 @@ class SearchEngine:
 
         return query_vector
 
+
     def _compute_vectors(self, query_terms: List[str], doc_scores: Dict[int, Tuple[float, set]]) -> Tuple[np.ndarray, np.ndarray]:
-        """Vectorized query and document vector computation"""
+        """
+        Vectorized query and document vector computation
+        Switched converting query and documents into sparse vectors for comparison (memory efficient, a lot faster computation)
+        """
         # Get all terms and create mapping
         all_terms = list(set(query_terms) | {term for _, terms in doc_scores.values() for term in terms})
         term_to_idx = {term: idx for idx, term in enumerate(all_terms)}
@@ -84,10 +98,10 @@ class SearchEngine:
             doc_data.extend(term_scores)
             doc_indices.extend(term_indices)
             doc_indptr.append(len(doc_indices))
-        
         doc_vectors = csr_matrix((doc_data, doc_indices, doc_indptr), shape=(n_docs, n_terms))
         
         return query_vector, doc_vectors
+
 
     def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
         query_terms = query_tokenize(query)
@@ -135,11 +149,13 @@ class SearchEngine:
         results.sort(key=lambda x: x.score, reverse=True)
         return results[:max_results]
 
+
+
 def main():
     search_engine = SearchEngine()
     
     while True:
-        query = input("\nEnter search query (or 'quit' to exit): ").strip()
+        query = input("\nEnter search query (or 'q' to exit): ").strip()
         if query.lower() == 'q':
             break
             

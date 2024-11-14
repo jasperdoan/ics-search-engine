@@ -33,7 +33,18 @@ Operational constraints:
     [x] Optionally, after or during merging, they can also be split into separate index files with term ranges. similarly, your search component must not load the entire inverted index in main memory. Instead, it must read the postings from the index(es) files on disk. The TAs will check that both of these things are happening.
 
 ------------------------------------------------------------------------------------------------------------------------------------------
+**Improvements Ideas**
+    [x] Query Optimization: Optimize how you handle queries. For instance, if you have longer queries, try to reduce the number of postings lists you need to access by using techniques like query rewriting or term-at-a-time processing.
+        > Ditched since its only applicable to Boolean search AND/OR need excessive req like a NLP model
 
+    [x] Algorithmic Improvements: Consider using more advanced algorithms for ranking and retrieval. Techniques like BM25 or TF-IDF can be optimized for faster computation.
+        > Wtf is BM25, tf-idf is already implemented but idk if we'll cover BM25
+
+    [ ] Parallel Processing: If your environment allows it, consider parallel processing of queries to make use of multiple CPU cores, especially if your search engine is expected to handle many queries simultaneously.
+
+    [ ] Threshold Methods: Implement threshold methods to stop processing once you have enough evidence that certain documents are not going to be in the top results. This can save time by avoiding unnecessary calculations.
+
+------------------------------------------------------------------------------------------------------------------------------------------
 **GOING THE EXTRA 7%!!!**
 Misc:
     [x] Look into text indexing libraries such as Lucene, PyLucene, or ElasticSearch (might make our lives easier)
