@@ -11,7 +11,7 @@ from scipy.sparse import csr_matrix
 from functools import lru_cache
 
 from utils.tokenizer import tokenize, query_tokenize
-from utils.constants import RANGE_DIR, DOCS_FILE
+from utils.constants import RANGE_DIR, DOCS_FILE, RANGE_SPLITS
 from utils.partials_handler import get_term_partial_path
 
 
@@ -28,7 +28,23 @@ class SearchEngine:
     def __init__(self):
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
-            
+        print("Preloading partial indexes...")
+        self._preload_partials()    # Preload all partial indexes
+        print("Done preloading partial indexes")
+
+
+    def _preload_partials(self):    # THIS IS THE SECRET SAUCE, THIS IS THE MAGIC THAT WILL GET OUR SEARCHES < 300ms
+        """Preload all partial indexes into cache"""
+        ranges = ['misc'] + [f"{start}_{end}" for start, end in RANGE_SPLITS]
+        for range_name in ranges:
+            partial_path = f"{RANGE_DIR}/index_{range_name}.json"
+            try:
+                # This will populate the LRU cache
+                self._load_term_postings(partial_path)
+                print(f"Loaded {partial_path}")
+            except FileNotFoundError:
+                print(f"Warning: {partial_path} not found")
+
 
     @lru_cache(maxsize=1000)    # Cache partial index loads / kinda like memoization as given as example in the doc!!!
     def _load_term_postings(self, partial_path: str) -> Dict:

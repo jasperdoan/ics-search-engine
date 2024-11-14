@@ -13,19 +13,8 @@ Search:
     [x] Key error: searching for key that dne throws key error
 
 
-Extra Credit:
-    [x] Implement a Web or GUI interface instead of a console one. (1 point for local GUI, 2 points for Web interface)
-    [x] Detect and eliminate duplicate pages. (1 point for exact, 2 points for near)
-        [x] Store SimHash fingerprints alongside documents
-        [x] Compare only against documents with content length
-    [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
-    [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
-    [ ] Enhance the index with word positions and use that information for retrieval. (2 points)
-    [ ] Index anchor words for the target pages (1 point).
-
-
 Search interface:
-    [ ] The response to search queries should be 300ms. Ideally, it would be 100ms, or less, but you won’t be penalized if it’s higher (as long as it’s kept 300ms).
+    [x] The response to search queries should be 300ms. Ideally, it would be 100ms, or less, but you won’t be penalized if it’s higher (as long as it’s kept 300ms).
 
 
 Operational constraints: 
@@ -41,6 +30,12 @@ Operational constraints:
     [x] Algorithmic Improvements: Consider using more advanced algorithms for ranking and retrieval. Techniques like BM25 or TF-IDF can be optimized for faster computation.
         > Wtf is BM25, tf-idf is already implemented but idk if we'll cover BM25
 
+    [x] Cache
+        > Works like a charm, thanks Homi
+
+    [x] Uses sparse matrix for tf-idf calculations / computation
+        > More memory efficient, makes it faster to compute and retrieve data
+
     [ ] Parallel Processing: If your environment allows it, consider parallel processing of queries to make use of multiple CPU cores, especially if your search engine is expected to handle many queries simultaneously.
 
     [ ] Threshold Methods: Implement threshold methods to stop processing once you have enough evidence that certain documents are not going to be in the top results. This can save time by avoiding unnecessary calculations.
@@ -50,13 +45,19 @@ Operational constraints:
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 **GOING THE EXTRA 7%!!!**
-Misc:
-    [x] Look into text indexing libraries such as Lucene, PyLucene, or ElasticSearch (might make our lives easier)
-        > Can't use it lol
+Extra Credit:
+    [x] Implement a Web or GUI interface instead of a console one. (1 point for local GUI, 2 points for Web interface)
+    [x] Detect and eliminate duplicate pages. (1 point for exact, 2 points for near)
+        [x] Store SimHash fingerprints alongside documents
+        [x] Compare only against documents with content length
+    [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
+    [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
+    [ ] Enhance the index with word positions and use that information for retrieval. (2 points)
+    [ ] Index anchor words for the target pages (1 point).
+    
 
-    [ ] Improve SimHash if possible but its the least of our priorities
-
-
+------------------------------------------------------------------------------------------------------------------------------------------
+**TODO/ISSUES**
 Issues:
     [x] 'research' / 'comput' / 'scienc' tf_idf doesn't seem to save properly or work (?) Its all 0.0
         > Fixed: Sample data was too small
@@ -80,6 +81,8 @@ Issues:
     [x] Real HTML pages found out there are full of bugs! Some of the pages in the dataset may not contain any HTML at all and, when they do, it may not be well formed. For example, there might be an open <strong> tag but the associated closing </strong> tag might be missing. While selecting the parser library for your project, please ensure that it can handle broken HTML.
         > BeautifulSoup can handle broken HTML, no longer an issue
 
+    [ ] Improve SimHash if possible but its the least of our priorities
+
     [ ] "XMLParsedAsHTMLWarning: It looks like you're parsing an XML document using an HTML parser. If this really is an HTML document (maybe it's XHTML?), you can ignore or filter this warning. If it's XML, you should know that using an XML parser will be more reliable. To parse this document as XML, make sure you have the lxml package installed, and pass the keyword argument `features="xml"` into the BeautifulSoup constructor."
 
     [ ] Deal with ascii encoding for some of the json (different format for db_ics, cs_uci)
@@ -90,3 +93,5 @@ Issues:
         > https://ics.uci.edu/~kay/courses/h22/hw/wordlist-random.txt
 
     [ ] https://www.ics.uci.edu/~ziv/ooad/intro_to_se/sld027.htm site is just horrible and not sure what it is reading but appears on query "master of computer science" alot, but has nothing to do with mse. Was considering to be low value and unreadable but that link was the exception. https://www.ics.uci.edu/~ziv/ooad/intro_to_se/tsld027.htm is a lot better but still doesn't show up alot. I'm assuming the former site is only able to spit out the title (3 words), and so it gives massive point boost for tf-idf. That's why it shows up high for MSE queries
+
+    [ ] Btw we are consistently getting < 100ms!!! (usually 10-20ms). But something I think it bugs out or smth and return in ~800ms which is fine, happens like once every 5 different runs on certain long queries. But other time its fine. Might be a hardware issue or cache issue, but I'm not too worried about it. Just a note to return to if we found something
