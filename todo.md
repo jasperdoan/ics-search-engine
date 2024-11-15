@@ -47,14 +47,25 @@ Operational constraints:
 **GOING THE EXTRA 7%!!!**
 Extra Credit:
     [x] Implement a Web or GUI interface instead of a console one. (1 point for local GUI, 2 points for Web interface)
+
     [x] Detect and eliminate duplicate pages. (1 point for exact, 2 points for near)
         [x] Store SimHash fingerprints alongside documents
         [x] Compare only against documents with content length
+
     [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
-    [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
+
     [ ] Enhance the index with word positions and use that information for retrieval. (2 points)
+        [ ] Store where each word appears within a document - peek() basically / recording the positions (or offsets) of each term in the documents they appear in.
+        [ ] This is useful and necessary for Proximity Searches, which is n-gram EC below. So that users can search for terms that appear close to each other. For example, if someone searches for "tropical fish," you can find documents where these words appear within a certain number of words apart.
+
+    [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
+        [ ] Need word positions EC first before n-gram EC
+
     [ ] Index anchor words for the target pages (1 point).
-    
+        [ ] During indexing, identify and extract the anchor words from hyperlinks --> include in inverted index & associating them with the target pages they link to.
+        [ ] Assigning a higher weight to anchor words during the ranking process, especially if they match the user's query.
+        [ ] Need to handle cases where anchor text is a common phrase like "click here"?
+        [ ] What about duplicate links pointing to the same target page with the same anchor text.
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 **TODO/ISSUES**
@@ -87,7 +98,7 @@ Issues:
 
     [ ] Deal with ascii encoding for some of the json (different format for db_ics, cs_uci)
 
-    [ ] Certain sites appears #1 search for non-conventional words / Encountering a situation where a page with a comprehensive word list is being ranked highly for queries involving rare or unique words. This behavior is literally keyword stuffing from quiz1, this really influence the tf-idf ranking if the word is rare in other documents. Listed below:
+    [ ] Certain sites appears #1 search for non-conventional words / Encountering a situation where a page with a comprehensive word list is being ranked highly for queries involving rare or unique words. This behavior is literally "keyword stuffing" from quiz1, this really influence the tf-idf ranking if the word is rare in other documents. Listed below:
         > https://www.ics.uci.edu/~kay/wordlist.txt 
         > https://ics.uci.edu/~kay/courses/h22/hw/DVD.txt 
         > https://ics.uci.edu/~kay/courses/h22/hw/wordlist-random.txt
