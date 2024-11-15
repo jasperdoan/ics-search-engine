@@ -13,7 +13,7 @@ from utils.constants import (
     DOCS_FILE,
     INDEX_FILE,
     FULL_ANALYTICS_DIR,
-    SIMILARITY_THRESHOLD
+    CONFIG
 )
 
 class Indexer:
@@ -48,7 +48,7 @@ class Indexer:
             doc = self.doc_processor.create_document(data, text, self.next_doc_id)
 
             # Check for near-duplicates
-            if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, SIMILARITY_THRESHOLD):
+            if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, CONFIG['similarity_threshold']):
                 return
             
             # Process tokens with weighted important text

@@ -24,8 +24,12 @@ ANALYST_DIR = "./ANALYST"
 DEV_DIR = "./DEV"
 
 # THRESHOLDS
-SIMILARITY_THRESHOLD = 0.85
-MAX_INDEX_SIZE_BYTES = 64 * 1024 * 1024
+CONFIG = {
+    'similarity_threshold': 0.85,
+    'max_index_size': 64 * 1024 * 1024,
+    'max_cache_size': 1000,
+    'simhash_cache_size': 1000000
+}
 RANGE_SPLITS = [
     ('a', 'c'), ('d', 'f'), ('g', 'i'), ('j', 'l'),
     ('m', 'o'), ('p', 'r'), ('s', 'u'), ('v', 'z')

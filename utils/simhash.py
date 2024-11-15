@@ -1,10 +1,15 @@
 import hashlib
+
+from functools import lru_cache
+
 from utils.tokenizer import tokenize
+from utils.constants import CONFIG
 
 class SimHash:
     def __init__(self, b=128):
         self.b = b  # Number of bits in the fingerprint
 
+    @lru_cache(maxsize=CONFIG['simhash_cache_size'])
     def _hash_word(self, word):
         encoded_word = word.encode('utf-8') # Encode the word into bytes using UTF-8 encoding
         md5_hash = hashlib.md5()            # Create an MD5 hash object

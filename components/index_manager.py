@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from components.document_processor import Document
 from utils.constants import (
-    MAX_INDEX_SIZE_BYTES, 
+    CONFIG, 
     RANGE_SPLITS,
     PARTIAL_DIR,
     RANGE_DIR
@@ -57,7 +57,7 @@ class IndexManager:
             self.update_index_size(token, posting)  # Track size increase
             unique_terms += 1
             
-            if self.index_size > MAX_INDEX_SIZE_BYTES:
+            if self.index_size > CONFIG['max_index_size']:
                 print(f"\tIndex size exceeded threshold, writing partial index to disk")
                 print(f"\tCurrent index size (MB): {self.index_size / 1024 / 1024:.2f}")
                 self.write_partial_index()

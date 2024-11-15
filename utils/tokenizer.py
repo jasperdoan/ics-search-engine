@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from utils.constants import STOP_WORDS
 
 
-def tokenize(text: str):
+def tokenize(text: str, for_query: bool = False) -> list:
     """
     Tokenize and stem the input text.
 
@@ -24,27 +24,11 @@ def tokenize(text: str):
     re_tokenizer = RegexpTokenizer('[a-zA-Z0-9]+')
     re_tokens = re_tokenizer.tokenize(text.lower())
 
-    # Remove stop words and apply stemming
-    tokens = [stemmer.stem(token) for token in re_tokens]
-
-    # Remove single-character tokens
-    return [token for token in tokens if len(token) != 1]
-
-
-def query_tokenize(text: str):
-    """
-    Tokenize and stem query text with stop word removal.
-    Used specifically for search queries.
-    """
-    # Initialize Porter Stemmer
-    stemmer = PorterStemmer()
-    
-    # Tokenize text into words
-    re_tokenizer = RegexpTokenizer('[a-zA-Z0-9]+')
-    re_tokens = re_tokenizer.tokenize(text.lower())
-
-    # Remove stop words and apply stemming
-    tokens = [stemmer.stem(token) for token in re_tokens if token.lower() not in STOP_WORDS]
+    # Stem tokens
+    if for_query:
+        tokens = [stemmer.stem(token) for token in re_tokens if token.lower() not in STOP_WORDS]
+    else:
+        tokens = [stemmer.stem(token) for token in re_tokens]
 
     # Remove single-character tokens
     return [token for token in tokens if len(token) != 1]

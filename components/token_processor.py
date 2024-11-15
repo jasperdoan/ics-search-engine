@@ -1,14 +1,22 @@
 from collections import defaultdict
 from typing import Dict, List
+from functools import lru_cache
+
 from utils.tokenizer import tokenize
+from utils.constants import CONFIG
+
 
 class TokenProcessor:
+    @lru_cache(maxsize=CONFIG['max_cache_size'])
+    def _tokenize_with_cache(self, text: str):
+        return tokenize(text)
+
     def process_tokens(self, text: str, important_text: Dict[str, float]) -> Dict[str, tuple[int, float]]:
         """Process regular and important tokens to create frequency map"""
         freq_map = defaultdict(lambda: (0, 0.0))
         
         # Process regular text
-        regular_tokens = tokenize(text)
+        regular_tokens = self._tokenize_with_cache(text)
         print(f"\tRegular tokens: {len(regular_tokens)}")
         
         for token in regular_tokens:

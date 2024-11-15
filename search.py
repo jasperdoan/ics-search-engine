@@ -10,8 +10,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 from functools import lru_cache
 
-from utils.tokenizer import tokenize, query_tokenize
-from utils.constants import RANGE_DIR, DOCS_FILE, RANGE_SPLITS
+from utils.tokenizer import tokenize
+from utils.constants import RANGE_DIR, DOCS_FILE, RANGE_SPLITS, CONFIG
 from utils.partials_handler import get_term_partial_path
 
 
@@ -46,7 +46,7 @@ class SearchEngine:
                 print(f"Warning: {partial_path} not found")
 
 
-    @lru_cache(maxsize=1000)    # Cache partial index loads / kinda like memoization as given as example in the doc!!!
+    @lru_cache(maxsize=CONFIG['max_cache_size'])    # Cache partial index loads / kinda like memoization as given as example in the doc!!!
     def _load_term_postings(self, partial_path: str) -> Dict:
         """Load postings for a specific term from its partial index"""
         try:
@@ -119,7 +119,7 @@ class SearchEngine:
 
 
     def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
-        query_terms = query_tokenize(query)
+        query_terms = tokenize(query, for_query=True)
         if not query_terms:
             return []
             
