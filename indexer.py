@@ -42,6 +42,10 @@ class Indexer:
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
+            if data['url'].lower().endswith('.txt'):
+                print(f"\tSkipping .txt file: {data['url']}")
+                return
+
             # Process document content
             soup, text = self.doc_processor.soupify(data)
             weighted_text = self.doc_processor.extract_important_text(soup)
