@@ -23,13 +23,11 @@ class TokenProcessor:
             freq_map[token] = (freq + 1, imp, positions + [pos])
         
         # Process important text with weights
-        offset = len(regular_tokens)
         for text, weight in important_text.items():
-            important_tokens = tokenize(text)
+            important_tokens = self._tokenize_with_cache(text)
             
-            for pos, token in enumerate(important_tokens, start=offset):
+            for token in important_tokens:
                 freq, imp, positions = freq_map[token]
-                freq_map[token] = (freq + 1, imp + weight, positions + [pos])
-            offset += len(important_tokens)
+                freq_map[token] = (freq + 1, imp + weight, positions)
             
         return freq_map
