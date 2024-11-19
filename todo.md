@@ -52,14 +52,14 @@ Extra Credit:
         [x] Store SimHash fingerprints alongside documents
         [x] Compare only against documents with content length
 
-    [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
-
-    [ ] Enhance the index with word positions and use that information for retrieval. (2 points)
-        [ ] Store where each word appears within a document - peek() basically / recording the positions (or offsets) of each term in the documents they appear in.
-        [ ] This is useful and necessary for Proximity Searches, which is n-gram EC below. So that users can search for terms that appear close to each other. For example, if someone searches for "tropical fish," you can find documents where these words appear within a certain number of words apart.
+    [x] Enhance the index with word positions and use that information for retrieval. (2 points)
+        [x] Store where each word appears within a document - peek() basically / recording the positions (or offsets) of each term in the documents they appear in.
+        [x] This is useful and necessary for Proximity Searches, which is n-gram EC below. So that users can search for terms that appear close to each other. For example, if someone searches for "tropical fish," you can find documents where these words appear within a certain number of words apart.
 
     [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
         [ ] Need word positions EC first before n-gram EC
+
+    [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
 
     [ ] Index anchor words for the target pages (1 point).
         [ ] During indexing, identify and extract the anchor words from hyperlinks --> include in inverted index & associating them with the target pages they link to.
@@ -105,4 +105,4 @@ Issues:
 
     [ ] https://www.ics.uci.edu/~ziv/ooad/intro_to_se/sld027.htm site is just horrible and not sure what it is reading but appears on query "master of computer science" alot, but has nothing to do with mse. Was considering to be low value and unreadable but that link was the exception. https://www.ics.uci.edu/~ziv/ooad/intro_to_se/tsld027.htm is a lot better but still doesn't show up alot. I'm assuming the former site is only able to spit out the title (3 words), and so it gives massive point boost for tf-idf. That's why it shows up high for MSE queries
 
-    [ ] Btw we are consistently getting < 100ms!!! (usually 10-20ms). But something I think it bugs out or smth and return in ~800ms which is fine, happens like once every 5 different runs on certain long queries. But other time its fine. Might be a hardware issue or cache issue, but I'm not too worried about it. Just a note to return to if we found something
+    [ ] Need better word positioning, rn its not as accurate I think its because of the weird tokenizing that's screwing it up

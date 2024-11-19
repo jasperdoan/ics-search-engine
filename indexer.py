@@ -17,7 +17,7 @@ from utils.constants import (
 )
 
 class Indexer:
-    def __init__(self, data_dir: str = TEST_DIR):
+    def __init__(self, data_dir: str = DEV_DIR):
         self.data_dir = Path(data_dir)
         self.stats_dir = Path(FULL_ANALYTICS_DIR)
         self.stats_dir.mkdir(exist_ok=True)
