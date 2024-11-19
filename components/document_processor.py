@@ -22,8 +22,9 @@ class DocumentProcessor:
 
     def _clean_text(self, text: str) -> str:
         """Clean and normalize text by removing special characters"""
-        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'[\u0080-\uffff]', '', text)     # Remove non-ASCII characters
+        text = re.sub(r'[\-]', ' ', text)               # Replace hyphens with spaces
+        text = re.sub(r'\s+', ' ', text)                # Remove extra whitespaces
         return text.strip()
 
     def soupify(self, data: dict) -> Tuple[BeautifulSoup, str]:

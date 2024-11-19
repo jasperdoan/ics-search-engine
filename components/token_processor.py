@@ -11,26 +11,25 @@ class TokenProcessor:
     def _tokenize_with_cache(self, text: str):
         return tokenize(text)
 
-    def process_tokens(self, text: str, important_text: Dict[str, float]) -> Dict[str, tuple[int, float]]:
-        """Process regular and important tokens to create frequency map"""
-        freq_map = defaultdict(lambda: (0, 0.0))
+    def process_tokens(self, text: str, important_text: Dict[str, float]) -> Dict[str, tuple[int, float, List[int]]]:
+        """Process tokens and track their positions"""
+        freq_map = defaultdict(lambda: (0, 0.0, []))  # (freq, importance, positions)
         
         # Process regular text
         regular_tokens = self._tokenize_with_cache(text)
-        # print(f"\tRegular tokens: {len(regular_tokens)}")
         
-        for token in regular_tokens:
-            count, imp = freq_map[token]
-            freq_map[token] = (count + 1, imp)
+        for pos, token in enumerate(regular_tokens):
+            freq, imp, positions = freq_map[token]
+            freq_map[token] = (freq + 1, imp, positions + [pos])
         
         # Process important text with weights
+        offset = len(regular_tokens)
         for text, weight in important_text.items():
             important_tokens = tokenize(text)
-            # print(f"\tImportant tokens with weight {weight}: {important_tokens}")
             
-            for token in important_tokens:
-                count, imp = freq_map[token]
-                # Add weight to importance score
-                freq_map[token] = (count + 1, imp + weight)
-        
+            for pos, token in enumerate(important_tokens, start=offset):
+                freq, imp, positions = freq_map[token]
+                freq_map[token] = (freq + 1, imp + weight, positions + [pos])
+            offset += len(important_tokens)
+            
         return freq_map

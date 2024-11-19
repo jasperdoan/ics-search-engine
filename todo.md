@@ -14,7 +14,7 @@ Search:
 
 
 Search interface:
-    [x] The response to search queries should be 300ms. Ideally, it would be 100ms, or less, but you won’t be penalized if it’s higher (as long as it’s kept 300ms).
+    [ ] The response to search queries should be 300ms. Ideally, it would be 100ms, or less, but you won’t be penalized if it’s higher (as long as it’s kept 300ms).
 
 
 Operational constraints: 
@@ -36,11 +36,11 @@ Operational constraints:
     [x] Uses sparse matrix for tf-idf calculations / computation
         > More memory efficient, makes it faster to compute and retrieve data
 
+    [x] Make more partials range indexes: Instead of a-c, d-f, etc... lets just do 1 term per json or 2 terms per json. I've noticed a significant time improvement from purely reading the full index vs partial. So maybe it might shave off more time for us who knows.
+
     [ ] Parallel Processing: If your environment allows it, consider parallel processing of queries to make use of multiple CPU cores, especially if your search engine is expected to handle many queries simultaneously.
 
     [ ] Threshold Methods: Implement threshold methods to stop processing once you have enough evidence that certain documents are not going to be in the top results. This can save time by avoiding unnecessary calculations.
-
-    [ ] Make more partials range indexes: Instead of a-c, d-f, etc... lets just do 1 term per json or 2 terms per json. I've noticed a significant time improvement from purely reading the full index vs partial. So maybe it might shave off more time for us who knows.
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------

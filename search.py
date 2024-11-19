@@ -124,7 +124,7 @@ class SearchEngine:
             if not postings:
                 continue
                 
-            for doc_id, freq, imp, tf_idf in postings:
+            for doc_id, freq, imp, tf_idf, _ in postings:
                 score, terms = doc_scores[doc_id]
                 # Add term match bonus based on % of query terms matched
                 match_bonus = len(terms | {term}) / total_query_terms
