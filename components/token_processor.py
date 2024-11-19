@@ -17,7 +17,7 @@ class TokenProcessor:
         
         # Process regular text
         regular_tokens = self._tokenize_with_cache(text)
-        print(f"\tRegular tokens: {len(regular_tokens)}")
+        # print(f"\tRegular tokens: {len(regular_tokens)}")
         
         for token in regular_tokens:
             count, imp = freq_map[token]
@@ -26,7 +26,7 @@ class TokenProcessor:
         # Process important text with weights
         for text, weight in important_text.items():
             important_tokens = tokenize(text)
-            print(f"\tImportant tokens with weight {weight}: {important_tokens}")
+            # print(f"\tImportant tokens with weight {weight}: {important_tokens}")
             
             for token in important_tokens:
                 count, imp = freq_map[token]

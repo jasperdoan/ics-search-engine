@@ -17,7 +17,7 @@ from utils.constants import (
 )
 
 class Indexer:
-    def __init__(self, data_dir: str = DEV_DIR):
+    def __init__(self, data_dir: str = TEST_DIR):
         self.data_dir = Path(data_dir)
         self.stats_dir = Path(FULL_ANALYTICS_DIR)
         self.stats_dir.mkdir(exist_ok=True)
@@ -91,6 +91,7 @@ class Indexer:
             doc_id: {
                 "url": doc.url,
                 "simhash": doc.simhash,
+                "token_count": doc.token_count
             } for doc_id, doc in self.documents.items()
         }
         

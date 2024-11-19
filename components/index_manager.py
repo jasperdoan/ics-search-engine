@@ -9,8 +9,7 @@ from dataclasses import dataclass
 
 from components.document_processor import Document
 from utils.constants import (
-    CONFIG, 
-    RANGE_SPLITS,
+    CONFIG,
     PARTIAL_DIR,
     RANGE_DIR
     )
@@ -190,8 +189,6 @@ class IndexManager:
         first_char = term[0].lower()
         if not first_char.isalpha():
             return "misc"
-            
-        for start, end in RANGE_SPLITS:
-            if start <= first_char <= end:
-                return f"{start}_{end}"
-        return "misc"
+        
+        # Each letter gets its own file
+        return f"{first_char}"
