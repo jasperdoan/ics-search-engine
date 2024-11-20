@@ -189,10 +189,4 @@ class IndexManager:
         """Determine which range a term belongs to"""
         if not term:
             return "misc"
-        
-        first_char = term[0].lower()
-        if not first_char.isalpha():
-            return "misc"
-        
-        # Each letter gets its own file
-        return f"{first_char}"
+        return f"{term[0].lower()}"
