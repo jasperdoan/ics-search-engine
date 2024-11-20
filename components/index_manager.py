@@ -9,8 +9,7 @@ from dataclasses import dataclass
 
 from components.document_processor import Document
 from utils.constants import (
-    MAX_INDEX_SIZE_BYTES, 
-    RANGE_SPLITS,
+    CONFIG,
     PARTIAL_DIR,
     RANGE_DIR
     )
@@ -20,7 +19,9 @@ class Posting:
     doc_id: int
     frequency: int 
     importance: int
-    tf_idf: float = 0.0
+    tf_idf: float
+    positions: List[int]
+
 
 class IndexManager:
     def __init__(self):
@@ -48,16 +49,16 @@ class IndexManager:
             posting.tf_idf = weighted_tf * idf
         return postings
 
-    def update_index(self, freq_map: Dict[str, Tuple[int, int]], doc_id: int) -> int:
+    def update_index(self, freq_map, doc_id):
         """Update index with new document's tokens"""
         unique_terms = 0
-        for token, (freq, importance) in freq_map.items():
-            posting = Posting(doc_id, freq, importance, 0.0)
+        for token, (freq, importance, positions) in freq_map.items():
+            posting = Posting(doc_id, freq, importance, 0.0, positions)
             self.index[token].append(posting)
-            self.update_index_size(token, posting)  # Track size increase
+            self.update_index_size(token, posting)
             unique_terms += 1
             
-            if self.index_size > MAX_INDEX_SIZE_BYTES:
+            if self.index_size > CONFIG['max_index_size']:
                 print(f"\tIndex size exceeded threshold, writing partial index to disk")
                 print(f"\tCurrent index size (MB): {self.index_size / 1024 / 1024:.2f}")
                 self.write_partial_index()
@@ -79,7 +80,7 @@ class IndexManager:
         partial_path = self.partial_dir / f"partial_{self.partial_index_count}.json"
         
         index_output = {
-            token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
+            token: [(p.doc_id, p.frequency, p.importance, p.tf_idf, p.positions)
                 for p in postings]
             for token, postings in self.index.items()
         }
@@ -103,8 +104,8 @@ class IndexManager:
                 
             for token, postings in partial_data.items():
                 term_range = self.get_term_range(token)
-                for doc_id, freq, imp, tf_idf in postings:
-                    posting = Posting(doc_id, freq, imp, tf_idf)
+                for doc_id, freq, imp, tf_idf, pos in postings:
+                    posting = Posting(doc_id, freq, imp, tf_idf, pos)
                     range_indexes[term_range][token].append(posting)
 
         # Save each range to separate file for searching later
@@ -112,11 +113,10 @@ class IndexManager:
             range_path = self.range_dir / f"index_{term_range}.json"
             
             index_output = {
-                token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
+                token: [(p.doc_id, p.frequency, p.importance, p.tf_idf, p.positions)
                     for p in postings]
                 for token, postings in terms.items()
             }
-            
             with open(range_path, 'w') as f:
                 json.dump(index_output, f)
 
@@ -136,8 +136,8 @@ class IndexManager:
             for token, postings in range_data.items():
                 # Convert raw postings to Posting objects
                 posting_objects = [
-                    Posting(doc_id, freq, imp, 0.0)
-                    for doc_id, freq, imp, _ in postings
+                    Posting(doc_id, freq, imp, 0.0, pos)
+                    for doc_id, freq, imp, _, pos in postings
                 ]
                 
                 # Calculate TF-IDF using shared function
@@ -145,7 +145,7 @@ class IndexManager:
                 
                 # Convert back to serializable format
                 updated_range[token] = [
-                    (p.doc_id, p.frequency, p.importance, p.tf_idf)
+                    (p.doc_id, p.frequency, p.importance, p.tf_idf, p.positions)
                     for p in updated_postings
                 ]
             
@@ -159,22 +159,25 @@ class IndexManager:
         """Merge all range index files into a single final index"""
         merged_index = defaultdict(list)
         range_files = list(self.range_dir.glob("index_*.json"))
+        print(f"\n========================================")
+        print(f"Merging {len(range_files)} range indexes...")
+        print(f"========================================")
         for range_path in range_files:
             try:
                 with open(range_path, 'r') as f:
                     range_data = json.load(f)
                 for token, postings in range_data.items():
-                    for doc_id, freq, imp, tf_idf in postings:
-                        posting = Posting(doc_id, freq, imp, tf_idf)
+                    for doc_id, freq, imp, tf_idf, pos in postings:
+                        posting = Posting(doc_id, freq, imp, tf_idf, pos)
                         merged_index[token].append(posting)
             except Exception as e:
                 print(f"Error processing {range_path}: {e}")
         self.index = merged_index
 
     def save_index(self, path: str) -> None:
-        """Save index to file"""
+        """Save index to file with positions"""
         index_output = {
-            token: [(p.doc_id, p.frequency, p.importance, p.tf_idf) 
+            token: [(p.doc_id, p.frequency, p.importance, p.tf_idf, p.positions)
                 for p in postings]
             for token, postings in self.index.items()
         }
@@ -190,8 +193,6 @@ class IndexManager:
         first_char = term[0].lower()
         if not first_char.isalpha():
             return "misc"
-            
-        for start, end in RANGE_SPLITS:
-            if start <= first_char <= end:
-                return f"{start}_{end}"
-        return "misc"
+        
+        # Each letter gets its own file
+        return f"{first_char}"

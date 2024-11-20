@@ -24,12 +24,14 @@ ANALYST_DIR = "./ANALYST"
 DEV_DIR = "./DEV"
 
 # THRESHOLDS
-SIMILARITY_THRESHOLD = 0.85
-MAX_INDEX_SIZE_BYTES = 64 * 1024 * 1024
-RANGE_SPLITS = [
-    ('a', 'c'), ('d', 'f'), ('g', 'i'), ('j', 'l'),
-    ('m', 'o'), ('p', 'r'), ('s', 'u'), ('v', 'z')
-    ]
+CONFIG = {
+    'similarity_threshold': 0.85,
+    'max_index_size': 32 * 1024 * 1024,
+    'max_cache_size': 1000,
+    'search_cache_size': 9,
+    'simhash_cache_size': 1000000
+}
+
 
 # FILE PATHS
 PARTIAL_DIR = "partial_indexes"
@@ -40,10 +42,10 @@ INDEX_FILE = f"{FULL_ANALYTICS_DIR}/index.json"
 
 # TAGS
 TAG_WEIGHTS = {
-    'title': 1.0,
-    'h1': 0.8,
-    'h2': 0.6,
-    'h3': 0.4,
-    'b': 0.2,
-    'strong': 0.2
+    'title': 2.0,
+    'h1': 1.5,
+    'h2': 1,
+    'h3': 0.75,
+    'b': 0.5,
+    'strong': 0.5
 }

@@ -13,7 +13,7 @@ from utils.constants import (
     DOCS_FILE,
     INDEX_FILE,
     FULL_ANALYTICS_DIR,
-    SIMILARITY_THRESHOLD
+    CONFIG
 )
 
 class Indexer:
@@ -42,13 +42,17 @@ class Indexer:
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
+            if data['url'].lower().endswith('.txt'):
+                print(f"\tSkipping .txt file: {data['url']}")
+                return
+
             # Process document content
             soup, text = self.doc_processor.soupify(data)
             weighted_text = self.doc_processor.extract_important_text(soup)
             doc = self.doc_processor.create_document(data, text, self.next_doc_id)
 
             # Check for near-duplicates
-            if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, SIMILARITY_THRESHOLD):
+            if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, CONFIG['similarity_threshold']):
                 return
             
             # Process tokens with weighted important text
@@ -91,6 +95,8 @@ class Indexer:
             doc_id: {
                 "url": doc.url,
                 "simhash": doc.simhash,
+                "token_count": doc.token_count,
+                "content": doc.content
             } for doc_id, doc in self.documents.items()
         }
         
