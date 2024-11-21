@@ -49,7 +49,6 @@ Operational constraints:
             - 'cristina lopes'                              query time: 0.713s -> 0.372s
             - 'machine learning and its impact on society'  query time: 1.753s -> 0.922s
 
-
     [ ] Parallel Processing: If your environment allows it, consider parallel processing of queries to make use of multiple CPU cores, especially if your search engine is expected to handle many queries simultaneously.
 
     [ ] Threshold Methods: Implement threshold methods to stop processing once you have enough evidence that certain documents are not going to be in the top results. This can save time by avoiding unnecessary calculations.
@@ -61,6 +60,8 @@ Operational constraints:
     [ ] Cache Preloading: Preload the cache with commonly searched terms during initialization.
 
     [ ] Compression: Use compressed file formats to reduce the amount of data read from disk.
+
+    [ ] Cache Common Terms: Use data from A2: Web Scraping, and we cache only the most relevant parts, like the top 50 terms or the most frequently accessed postings.
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------
@@ -112,18 +113,21 @@ Issues:
     [x] Real HTML pages found out there are full of bugs! Some of the pages in the dataset may not contain any HTML at all and, when they do, it may not be well formed. For example, there might be an open <strong> tag but the associated closing </strong> tag might be missing. While selecting the parser library for your project, please ensure that it can handle broken HTML.
         > BeautifulSoup can handle broken HTML, no longer an issue
 
-    [ ] Improve SimHash if possible but its the least of our priorities
+    [x] https://www.ics.uci.edu/~ziv/ooad/intro_to_se/sld027.htm site is just horrible and not sure what it is reading but appears on query "master of computer science" alot, but has nothing to do with mse. Was considering to be low value and unreadable but that link was the exception. https://www.ics.uci.edu/~ziv/ooad/intro_to_se/tsld027.htm is a lot better but still doesn't show up alot. I'm assuming the former site is only able to spit out the title (3 words), and so it gives massive point boost for tf-idf. That's why it shows up high for MSE queries
+        > Adjusted weights + term matching boost to fix this issue
+
+    [x] Certain sites appears #1 search for non-conventional words / Encountering a situation where a page with a comprehensive word list is being ranked highly for queries involving rare or unique words. This behavior is literally "keyword stuffing" from quiz1, this really influence the tf-idf ranking if the word is rare in other documents. Listed below:
+        - https://www.ics.uci.edu/~kay/wordlist.txt 
+        - https://ics.uci.edu/~kay/courses/h22/hw/DVD.txt 
+        - https://ics.uci.edu/~kay/courses/h22/hw/wordlist-random.txt
+        > End up ignoring any .txt files, since they are not HTML and are not relevant to the search
+
+    [x] Improve SimHash if possible but its the least of our priorities
+        > No longer applicable
 
     [ ] "XMLParsedAsHTMLWarning: It looks like you're parsing an XML document using an HTML parser. If this really is an HTML document (maybe it's XHTML?), you can ignore or filter this warning. If it's XML, you should know that using an XML parser will be more reliable. To parse this document as XML, make sure you have the lxml package installed, and pass the keyword argument `features="xml"` into the BeautifulSoup constructor."
 
     [ ] Deal with ascii encoding for some of the json (different format for db_ics, cs_uci)
-
-    [ ] Certain sites appears #1 search for non-conventional words / Encountering a situation where a page with a comprehensive word list is being ranked highly for queries involving rare or unique words. This behavior is literally "keyword stuffing" from quiz1, this really influence the tf-idf ranking if the word is rare in other documents. Listed below:
-        > https://www.ics.uci.edu/~kay/wordlist.txt 
-        > https://ics.uci.edu/~kay/courses/h22/hw/DVD.txt 
-        > https://ics.uci.edu/~kay/courses/h22/hw/wordlist-random.txt
-
-    [ ] https://www.ics.uci.edu/~ziv/ooad/intro_to_se/sld027.htm site is just horrible and not sure what it is reading but appears on query "master of computer science" alot, but has nothing to do with mse. Was considering to be low value and unreadable but that link was the exception. https://www.ics.uci.edu/~ziv/ooad/intro_to_se/tsld027.htm is a lot better but still doesn't show up alot. I'm assuming the former site is only able to spit out the title (3 words), and so it gives massive point boost for tf-idf. That's why it shows up high for MSE queries
 
     [ ] Need better word positioning, rn its not as accurate I think its because of the weird tokenizing that's screwing it up
 
