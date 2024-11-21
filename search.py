@@ -1,6 +1,7 @@
 import json
 import time
 import numpy as np
+import pickle
 
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -30,14 +31,23 @@ class SearchEngine:
             self.documents = json.load(f)
 
 
-    @lru_cache(maxsize=CONFIG['search_cache_size'])     # Cache partial index loads / kinda like memoization as given as example in the doc!!!
+    @lru_cache(maxsize=CONFIG['search_cache_size'])
     def _load_term_postings(self, partial_path: str) -> Dict:
         """Load postings for a specific term from its partial index"""
+        json_path = Path(partial_path)
+        pickle_path = json_path.parent / "pickle" / f"{json_path.stem}.pkl"
+
         try:
+            # Try pickle first
+            if pickle_path.exists():
+                with open(pickle_path, 'rb') as f:
+                    return pickle.load(f)
+            # Fallback to JSON
             with open(partial_path, 'r') as f:
-                partial_index = json.load(f)
-                return partial_index
-        except FileNotFoundError:
+                return json.load(f)
+                
+        except (FileNotFoundError, pickle.PickleError):
+            print(f"Error loading index: \n\t{pickle_path} \n - or -  \n\t{partial_path}")
             return {}
 
 

@@ -36,11 +36,31 @@ Operational constraints:
     [x] Uses sparse matrix for tf-idf calculations / computation
         > More memory efficient, makes it faster to compute and retrieve data
 
-    [x] Make more partials range indexes: Instead of a-c, d-f, etc... lets just do 1 term per json or 2 terms per json. I've noticed a significant time improvement from purely reading the full index vs partial. So maybe it might shave off more time for us who knows.
+    [x] Make more partials range indexes (Sharding): Instead of a-c, d-f, etc... lets just do 1 term per json or 2 terms per json. I've noticed a significant time improvement from purely reading the full index vs partial. So maybe it might shave off more time for us who knows.
+        > Done
+
+    [x] Optimize Data Structures: JSON is flexible but can be slow to parse. Consider using a more efficient binary format for storing your postings if performance is critical.
+        > Tried csv, slower even though reading is faster, parsing it back to dict is slow. 
+        > Pickle overtook json! We should look at binary format now, since Pickle is specifically designed for serializing and deserializing Python objects, there's no parsing overhead, which saves time.
+            - 'machine learning'                            query time: 0.645s -> 0.359s
+            - 'research'                                    query time: 0.625s -> 0.374s
+            - 'master of computer science'                  query time: 1.303s -> 1.143s
+            - 'master of software engineering'              query time: 1.375s -> 0.709s 
+            - 'cristina lopes'                              query time: 0.713s -> 0.372s
+            - 'machine learning and its impact on society'  query time: 1.753s -> 0.922s
+
 
     [ ] Parallel Processing: If your environment allows it, consider parallel processing of queries to make use of multiple CPU cores, especially if your search engine is expected to handle many queries simultaneously.
 
     [ ] Threshold Methods: Implement threshold methods to stop processing once you have enough evidence that certain documents are not going to be in the top results. This can save time by avoiding unnecessary calculations.
+
+    [ ] Batch Loading: Instead of loading postings one by one, try to batch load several postings at once if they are likely to be queried together. This can reduce the number of disk accesses.
+
+    [ ] Memory Mapping: Use memory-mapped file I/O.
+
+    [ ] Cache Preloading: Preload the cache with commonly searched terms during initialization.
+
+    [ ] Compression: Use compressed file formats to reduce the amount of data read from disk.
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------
@@ -106,3 +126,5 @@ Issues:
     [ ] https://www.ics.uci.edu/~ziv/ooad/intro_to_se/sld027.htm site is just horrible and not sure what it is reading but appears on query "master of computer science" alot, but has nothing to do with mse. Was considering to be low value and unreadable but that link was the exception. https://www.ics.uci.edu/~ziv/ooad/intro_to_se/tsld027.htm is a lot better but still doesn't show up alot. I'm assuming the former site is only able to spit out the title (3 words), and so it gives massive point boost for tf-idf. That's why it shows up high for MSE queries
 
     [ ] Need better word positioning, rn its not as accurate I think its because of the weird tokenizing that's screwing it up
+
+    [ ] Cristina's tf-idf way in lecture, she log(tf) which kinda go against the formula but her explanation makes sense. Might need to do a separate index and comare if it really affects the search, and does it even matter.
