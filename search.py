@@ -1,7 +1,8 @@
+import ast
 import json
 import time
-import numpy as np
 import pickle
+import numpy as np
 
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -12,10 +13,9 @@ from scipy.sparse import csr_matrix
 from functools import lru_cache
 
 from utils.tokenizer import tokenize
-from utils.constants import RANGE_DIR, DOCS_FILE, CONFIG
+from utils.constants import RANGE_DIR, DOCS_FILE, CONFIG, INDEX_MAP_FILE, INDEX_PEEK_FILE
 from utils.partials_handler import get_term_partial_path
 
-import ast
 
 @dataclass
 class SearchResult:
@@ -25,30 +25,49 @@ class SearchResult:
 
 
 
+class FileHandler:
+    """Handles file operations for search"""
+    
+    def __init__(self, index_path: str, seek_index_path: str):
+        self.index_path = Path(index_path)
+        self.seek_index_path = Path(seek_index_path)
+        self.file_ptr: TextIO = None
+        self.seek_positions: Dict[str, int] = {}
+        
+
+    def __enter__(self):
+        self.file_ptr = open(self.index_path, "r")
+        with open(self.seek_index_path, "r") as f:
+            self.seek_positions = json.load(f)
+        return self
+        
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.file_ptr:
+            self.file_ptr.close()
+            
+
+    def get_postings(self, term: str) -> List:
+        """Get postings list for a term using seek position"""
+        if term not in self.seek_positions:
+            return []
+            
+        seek_val = self.seek_positions[term]
+        self.file_ptr.seek(0)
+        self.file_ptr.seek(seek_val)
+        
+        line = self.file_ptr.readline().strip()
+        if not line:
+            return []
+            
+        _, postings_str = line.split(":", 1)
+        return ast.literal_eval(postings_str.strip())
+
+
 class SearchEngine:
     def __init__(self):
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
-
-
-    # @lru_cache(maxsize=CONFIG['search_cache_size'])
-    # def _load_term_postings(self, partial_path: str) -> Dict:
-    #     """Load postings for a specific term from its partial index"""
-    #     json_path = Path(partial_path)
-    #     pickle_path = json_path.parent / "pickle" / f"{json_path.stem}.pkl"
-
-    #     try:
-    #         # Try pickle first
-    #         if pickle_path.exists():
-    #             with open(pickle_path, 'rb') as f:
-    #                 return pickle.load(f)
-    #         # Fallback to JSON
-    #         with open(partial_path, 'r') as f:
-    #             return json.load(f)
-                
-    #     except (FileNotFoundError, pickle.PickleError):
-    #         print(f"Error loading index: \n\t{pickle_path} \n - or -  \n\t{partial_path}")
-    #         return {}
 
 
     def _compute_query_freq_term(self, query_terms: List[str]) -> Dict[str, float]:
@@ -129,19 +148,10 @@ class SearchEngine:
         
         # Process each query term
         for term in query_terms:
-
-            # print(f"\nProcessing term: {term}")
-
             if term not in json_seek:
-                # print(f"\ndid not find seek value for: {term}")
                 continue
 
-                
-            
             seek_val = json_seek[term]
-            # print(f"\nseek val of {term}: {seek_val}")
-            
-
             file_ptr.seek(0)
             file_ptr.seek(seek_val)
 
@@ -197,31 +207,26 @@ class SearchEngine:
 def main():
     search_engine = SearchEngine()
     
-    with open("index_new.txt", "r") as file_ptr:
-        with open("secondary_index.json", "r") as secondary_index:
-
-            json_seek =  json.load(secondary_index)
+    with FileHandler(INDEX_PEEK_FILE, INDEX_MAP_FILE) as fh:
+        while True:
+            query = input("\nEnter search query (or 'q' to exit): ").strip()
+            if query.lower() == 'q':
+                break
                 
-
-            while True:
-                query = input("\nEnter search query (or 'q' to exit): ").strip()
-                if query.lower() == 'q':
-                    break
-                    
-                start_time = time.time()
-                results = search_engine.search(query, 10, file_ptr, json_seek)
-                end_time = time.time()
+            start_time = time.time()
+            results = search_engine.search(query, 10, fh.file_ptr, fh.seek_positions)
+            query_time = time.time() - start_time
+            
+            if not results:
+                print("No results found.")
+                continue
                 
-                if not results:
-                    print("No results found.")
-                    continue
-                    
-                print(f"\nFound {len(results)} results:")
-                for i, result in enumerate(results, 1):
-                    print(f"\n{i}. {result.url}")
-                    print(f"   Score: {result.score:.4f}")
-                    print(f"   Matched terms: {result.matched_terms}")
-                print(f"\nSearch completed in {end_time - start_time:.4f} seconds")
+            print(f"\nFound {len(results)} results:")
+            for i, result in enumerate(results, 1):
+                print(f"\n{i}. {result.url}")
+                print(f"   Score: {result.score:.4f}")
+                print(f"   Matched terms: {result.matched_terms}")
+            print(f"\nSearch completed in {query_time:.4f} seconds")
 
 if __name__ == "__main__":
     main()

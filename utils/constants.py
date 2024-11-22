@@ -39,6 +39,8 @@ RANGE_DIR = "range_indexes"
 FULL_ANALYTICS_DIR = "full_analytics"
 DOCS_FILE = f"{FULL_ANALYTICS_DIR}/documents.json" 
 INDEX_FILE = f"{FULL_ANALYTICS_DIR}/index.json"
+INDEX_PEEK_FILE = "index_peek.txt"
+INDEX_MAP_FILE = "index_map_position.json"
 
 # TAGS
 TAG_WEIGHTS = {
