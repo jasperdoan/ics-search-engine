@@ -15,7 +15,7 @@ from utils.tokenizer import tokenize
 from utils.constants import RANGE_DIR, DOCS_FILE, CONFIG
 from utils.partials_handler import get_term_partial_path
 
-
+import ast
 
 @dataclass
 class SearchResult:
@@ -31,24 +31,24 @@ class SearchEngine:
             self.documents = json.load(f)
 
 
-    @lru_cache(maxsize=CONFIG['search_cache_size'])
-    def _load_term_postings(self, partial_path: str) -> Dict:
-        """Load postings for a specific term from its partial index"""
-        json_path = Path(partial_path)
-        pickle_path = json_path.parent / "pickle" / f"{json_path.stem}.pkl"
+    # @lru_cache(maxsize=CONFIG['search_cache_size'])
+    # def _load_term_postings(self, partial_path: str) -> Dict:
+    #     """Load postings for a specific term from its partial index"""
+    #     json_path = Path(partial_path)
+    #     pickle_path = json_path.parent / "pickle" / f"{json_path.stem}.pkl"
 
-        try:
-            # Try pickle first
-            if pickle_path.exists():
-                with open(pickle_path, 'rb') as f:
-                    return pickle.load(f)
-            # Fallback to JSON
-            with open(partial_path, 'r') as f:
-                return json.load(f)
+    #     try:
+    #         # Try pickle first
+    #         if pickle_path.exists():
+    #             with open(pickle_path, 'rb') as f:
+    #                 return pickle.load(f)
+    #         # Fallback to JSON
+    #         with open(partial_path, 'r') as f:
+    #             return json.load(f)
                 
-        except (FileNotFoundError, pickle.PickleError):
-            print(f"Error loading index: \n\t{pickle_path} \n - or -  \n\t{partial_path}")
-            return {}
+    #     except (FileNotFoundError, pickle.PickleError):
+    #         print(f"Error loading index: \n\t{pickle_path} \n - or -  \n\t{partial_path}")
+    #         return {}
 
 
     def _compute_query_freq_term(self, query_terms: List[str]) -> Dict[str, float]:
@@ -112,7 +112,8 @@ class SearchEngine:
         return query_vector, doc_vectors
 
 
-    def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
+    def search(self, query, max_results, file_ptr, json_seek) -> List[SearchResult]:
+
         query_terms = tokenize(query, for_query=True)
         if not query_terms:
             return []
@@ -128,11 +129,30 @@ class SearchEngine:
         
         # Process each query term
         for term in query_terms:
-            partial_path = get_term_partial_path(term)
-            partial_index = self._load_term_postings(partial_path)
-            postings = partial_index.get(term, {})
-            if not postings:
+
+            # print(f"\nProcessing term: {term}")
+
+            if term not in json_seek:
+                # print(f"\ndid not find seek value for: {term}")
                 continue
+
+                
+            
+            seek_val = json_seek[term]
+            # print(f"\nseek val of {term}: {seek_val}")
+            
+
+            file_ptr.seek(0)
+            file_ptr.seek(seek_val)
+
+            line = file_ptr.readline().strip()
+
+            if not line:
+                continue    
+        
+            _, postings_str = line.split(":", 1)
+        
+            postings = ast.literal_eval(postings_str.strip())
                 
             for doc_id, freq, imp, tf_idf, _ in postings:
                 score, terms = doc_scores[doc_id]
@@ -142,7 +162,7 @@ class SearchEngine:
                     score + (tf_idf * query_vector[term]), 
                     terms | {term}
                 )
-        
+            
         if not doc_scores:
             return []
             
@@ -177,25 +197,31 @@ class SearchEngine:
 def main():
     search_engine = SearchEngine()
     
-    while True:
-        query = input("\nEnter search query (or 'q' to exit): ").strip()
-        if query.lower() == 'q':
-            break
-            
-        start_time = time.time()
-        results = search_engine.search(query)
-        end_time = time.time()
-        
-        if not results:
-            print("No results found.")
-            continue
-            
-        print(f"\nFound {len(results)} results:")
-        for i, result in enumerate(results, 1):
-            print(f"\n{i}. {result.url}")
-            print(f"   Score: {result.score:.4f}")
-            print(f"   Matched terms: {result.matched_terms}")
-        print(f"\nSearch completed in {end_time - start_time:.4f} seconds")
+    with open("index_new.txt", "r") as file_ptr:
+        with open("secondary_index.json", "r") as secondary_index:
+
+            json_seek =  json.load(secondary_index)
+                
+
+            while True:
+                query = input("\nEnter search query (or 'q' to exit): ").strip()
+                if query.lower() == 'q':
+                    break
+                    
+                start_time = time.time()
+                results = search_engine.search(query, 10, file_ptr, json_seek)
+                end_time = time.time()
+                
+                if not results:
+                    print("No results found.")
+                    continue
+                    
+                print(f"\nFound {len(results)} results:")
+                for i, result in enumerate(results, 1):
+                    print(f"\n{i}. {result.url}")
+                    print(f"   Score: {result.score:.4f}")
+                    print(f"   Matched terms: {result.matched_terms}")
+                print(f"\nSearch completed in {end_time - start_time:.4f} seconds")
 
 if __name__ == "__main__":
     main()
