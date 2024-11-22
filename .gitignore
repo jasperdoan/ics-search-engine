@@ -37,3 +37,7 @@ TEST/
 *.json
 
 *.zip
+
+*.txt
+
+*.pkl

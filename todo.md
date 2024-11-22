@@ -49,19 +49,7 @@ Operational constraints:
             - 'cristina lopes'                              query time: 0.713s -> 0.372s
             - 'machine learning and its impact on society'  query time: 1.753s -> 0.922s
 
-    [ ] Parallel Processing: If your environment allows it, consider parallel processing of queries to make use of multiple CPU cores, especially if your search engine is expected to handle many queries simultaneously.
-
-    [ ] Threshold Methods: Implement threshold methods to stop processing once you have enough evidence that certain documents are not going to be in the top results. This can save time by avoiding unnecessary calculations.
-
-    [ ] Batch Loading: Instead of loading postings one by one, try to batch load several postings at once if they are likely to be queried together. This can reduce the number of disk accesses.
-
-    [ ] Memory Mapping: Use memory-mapped file I/O.
-
-    [ ] Cache Preloading: Preload the cache with commonly searched terms during initialization.
-
-    [ ] Compression: Use compressed file formats to reduce the amount of data read from disk.
-
-    [ ] Cache Common Terms: Use data from A2: Web Scraping, and we cache only the most relevant parts, like the top 50 terms or the most frequently accessed postings.
+    [x] Cristina peek()
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------
@@ -132,3 +120,56 @@ Issues:
     [ ] Need better word positioning, rn its not as accurate I think its because of the weird tokenizing that's screwing it up
 
     [ ] Cristina's tf-idf way in lecture, she log(tf) which kinda go against the formula but her explanation makes sense. Might need to do a separate index and comare if it really affects the search, and does it even matter.
+
+
+------------------------------------------------------------------------------------------------------------------------------------------
+**KEY NOTES**
+We implemented 2 ways to search
+    1. Index sharding (a-z,0-9 partial indexes)
+    2. Single index with peek() for word positions
+
+    What we found is that with peek(), the search time is significantly faster than sharding. But it only for queries with < 5 terms, the performance falls off if we do a large query. While sharding is consistent and doesn't have a performance drop off. 
+
+    AND SO we're going to use ensemble and use both methods to search.
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------
+Queries:
+    Good:
+        machine learning
+        master of software engineering
+        master of computer science
+        cristina lopes
+        2019
+        cs121
+        research opportunity in summer
+        public
+        undergraduate program
+        database for machine learning
+        hackathon
+
+    Bad:
+        of next the and up to in technic detail imag for prev size origin taken iso on at is canon eo equiv 10 thi with by 25 from that be inform are comput 100 it uci 50 an as use 20 f2 or d60 ic 70 have crw all not
+
+        machine learning and its impact on society
+
+        apple banana cherry date elder fig grape honey ice jasmine kiwi lime mango nutmeg oak pear quince raspberry strawberry tangerine ube vanilla walnut xylophone yak yoghurt zucchini
+
+        I like pizzas
+        
+        what is two plus two
+        
+        what is 2 + 2
+        
+        麻了，累了，チェ・チー・ドゥオリン，hasta mañana
+        
+        @***909***@, !@!>_<!@! :33333
+        
+        7%9=7*7=49-40=9(3)=27-1
+        
+        computer science computer science computer science computer science computer science
+        
+        :)
+        
+        🗿🗿
