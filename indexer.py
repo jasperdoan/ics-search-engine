@@ -6,6 +6,7 @@ from typing import Dict, List, Callable, Optional
 from components.document_processor import DocumentProcessor, Document
 from components.token_processor import TokenProcessor
 from components.index_manager import IndexManager
+from utils.index_generator import IndexGenerator
 from utils.partials_handler import convert_json_to_pickle
 from utils.constants import (
     TEST_DIR,
@@ -14,7 +15,9 @@ from utils.constants import (
     DOCS_FILE,
     INDEX_FILE,
     FULL_ANALYTICS_DIR,
-    CONFIG
+    CONFIG,
+    INDEX_PEEK_FILE, 
+    INDEX_MAP_FILE
 )
 
 class Indexer:
@@ -106,8 +109,6 @@ class Indexer:
             
         self.index_manager.merge_indexes()
         self.index_manager.save_index(INDEX_FILE)
-
-        convert_json_to_pickle()  # Convert JSON indexes to pickle format
         
         # Print statistics
         docs_size_kb = Path(DOCS_FILE).stat().st_size / 1024
@@ -125,6 +126,12 @@ def main():
     indexer = Indexer()
     indexer.build_index()
     indexer.save_data()
+    generator = IndexGenerator(
+        index_path=INDEX_FILE,
+        output_pickle=INDEX_PEEK_FILE,
+        output_json=INDEX_MAP_FILE
+    )
+    generator.generate()
 
 if __name__ == "__main__":
     main()
