@@ -1,4 +1,3 @@
-import ast
 import json
 import time
 import pickle
@@ -10,11 +9,9 @@ from dataclasses import dataclass
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
-from functools import lru_cache
 
 from utils.tokenizer import tokenize
-from utils.constants import RANGE_DIR, DOCS_FILE, CONFIG, INDEX_MAP_FILE, INDEX_PEEK_FILE
-from utils.partials_handler import get_term_partial_path
+from utils.constants import RANGE_DIR, DOCS_FILE, INDEX_MAP_FILE, INDEX_PEEK_FILE
 
 
 @dataclass
@@ -24,28 +21,24 @@ class SearchResult:
     matched_terms: List[str]
 
 
-
 class FileHandler:
     """Handles file operations for search"""
     
     def __init__(self, index_path: str, seek_index_path: str):
         self.index_path = Path(index_path)
         self.seek_index_path = Path(seek_index_path)
-        self.file_ptr: TextIO = None
+        self.file_ptr = None
         self.seek_positions: Dict[str, int] = {}
-        
 
     def __enter__(self):
-        self.file_ptr = open(self.index_path, "r")
+        self.file_ptr = open(self.index_path, "rb")  # Open in binary mode
         with open(self.seek_index_path, "r") as f:
             self.seek_positions = json.load(f)
         return self
-        
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.file_ptr:
             self.file_ptr.close()
-            
 
     def get_postings(self, term: str) -> List:
         """Get postings list for a term using seek position"""
@@ -53,15 +46,8 @@ class FileHandler:
             return []
             
         seek_val = self.seek_positions[term]
-        self.file_ptr.seek(0)
         self.file_ptr.seek(seek_val)
-        
-        line = self.file_ptr.readline().strip()
-        if not line:
-            return []
-            
-        _, postings_str = line.split(":", 1)
-        return ast.literal_eval(postings_str.strip())
+        return pickle.load(self.file_ptr)
 
 
 class SearchEngine:
@@ -69,17 +55,8 @@ class SearchEngine:
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
 
-
     def _compute_query_freq_term(self, query_terms: List[str]) -> Dict[str, float]:
-        """
-        Compute normalized term frequencies for query terms
-        This is to normalizes query term frequencies to avoid bias from repeated terms
-        Any repeated term in the query will dominate scoring, and is skewed by repeatition. By normalizing:
-            - Fair weighting of terms
-            - Scale-independent scoring
-            - More accurate relevance ranking
-            - Resistance to keyword stuffing
-        """
+        """Compute normalized term frequencies for query terms"""
         query_vector = defaultdict(float)
         term_freq = defaultdict(int)
         
@@ -95,12 +72,8 @@ class SearchEngine:
 
         return query_vector
 
-
     def _compute_vectors(self, query_terms: List[str], doc_scores: Dict[int, Tuple[float, set]]) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Vectorized query and document vector computation
-        Switched converting query and documents into sparse vectors for comparison (memory efficient, a lot faster computation)
-        """
+        """Vectorized query and document vector computation"""
         # Get all terms and create mapping
         all_terms = list(set(query_terms) | {term for _, terms in doc_scores.values() for term in terms})
         term_to_idx = {term: idx for idx, term in enumerate(all_terms)}
@@ -130,9 +103,8 @@ class SearchEngine:
         
         return query_vector, doc_vectors
 
-
-    def search(self, query, max_results, file_ptr, json_seek) -> List[SearchResult]:
-
+    def search(self, query: str, max_results: int, file_handler: FileHandler) -> List[SearchResult]:
+        """Execute search query and return ranked results"""
         query_terms = tokenize(query, for_query=True)
         if not query_terms:
             return []
@@ -148,22 +120,12 @@ class SearchEngine:
         
         # Process each query term
         for term in query_terms:
-            if term not in json_seek:
+            term_data = file_handler.get_postings(term)
+            if not term_data:
                 continue
-
-            seek_val = json_seek[term]
-            file_ptr.seek(0)
-            file_ptr.seek(seek_val)
-
-            line = file_ptr.readline().strip()
-
-            if not line:
-                continue    
-        
-            _, postings_str = line.split(":", 1)
-        
-            postings = ast.literal_eval(postings_str.strip())
-                
+            
+            _, postings = term_data  # term_data is a tuple of (term, postings)
+            
             for doc_id, freq, imp, tf_idf, _ in postings:
                 score, terms = doc_scores[doc_id]
                 # Add term match bonus based on % of query terms matched
@@ -180,15 +142,14 @@ class SearchEngine:
         q_vec, doc_vecs = self._compute_vectors(query_terms, doc_scores)
         similarities = cosine_similarity(q_vec, doc_vecs)[0]
         
-        # Combine tf-idf scores with cosine similarity
+        # Combine scores and create results
         results = []
         for i, (doc_id, (tf_idf_score, matched_terms)) in enumerate(doc_scores.items()):
-            # Boost documents matching more query terms
             term_match_boost = len(matched_terms) / total_query_terms
             combined_score = (
                 0.2 * tf_idf_score + 
                 0.2 * similarities[i] +
-                0.6 * term_match_boost  # Make queries with more matched terms are more relevant
+                0.6 * term_match_boost
             )
             results.append(
                 SearchResult(
@@ -203,7 +164,6 @@ class SearchEngine:
         return results[:max_results]
 
 
-
 def main():
     search_engine = SearchEngine()
     
@@ -214,7 +174,7 @@ def main():
                 break
                 
             start_time = time.time()
-            results = search_engine.search(query, 10, fh.file_ptr, fh.seek_positions)
+            results = search_engine.search(query, 10, fh)
             query_time = time.time() - start_time
             
             if not results:
@@ -227,6 +187,7 @@ def main():
                 print(f"   Score: {result.score:.4f}")
                 print(f"   Matched terms: {result.matched_terms}")
             print(f"\nSearch completed in {query_time:.4f} seconds")
+
 
 if __name__ == "__main__":
     main()
