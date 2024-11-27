@@ -122,3 +122,5 @@ Issues:
     [ ] Need better word positioning, rn its not as accurate I think its because of the weird tokenizing that's screwing it up
 
     [ ] Cristina's tf-idf way in lecture, she log(tf) which kinda go against the formula but her explanation makes sense. Might need to do a separate index and comare if it really affects the search, and does it even matter.
+
+    [ ] “url” : contains the URL of the page. (ignore the fragment part, if you see it)
