@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from functools import lru_cache
 
 from utils.tokenizer import tokenize
@@ -11,7 +11,7 @@ class TokenProcessor:
     def _tokenize_with_cache(self, text: str):
         return tokenize(text)
 
-    def process_tokens(self, text: str, important_text: Dict[str, float]) -> Dict[str, tuple[int, float, List[int]]]:
+    def process_tokens(self, text: str, important_text: Dict[str, float]) -> Dict[str, Tuple[int, float, List[int]]]:
         """Process tokens and track their positions"""
         freq_map = defaultdict(lambda: (0, 0.0, []))  # (freq, importance, positions)
         
