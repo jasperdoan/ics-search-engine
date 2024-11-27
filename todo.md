@@ -14,7 +14,7 @@ Search:
 
 
 Search interface:
-    [ ] The response to search queries should be 300ms. Ideally, it would be 100ms, or less, but you won’t be penalized if it’s higher (as long as it’s kept 300ms).
+    [x] The response to search queries should be 300ms. Ideally, it would be 100ms, or less, but you won’t be penalized if it’s higher (as long as it’s kept 300ms).
 
 
 Operational constraints: 
@@ -64,6 +64,8 @@ Extra Credit:
     [x] Enhance the index with word positions and use that information for retrieval. (2 points)
         [x] Store where each word appears within a document - peek() basically / recording the positions (or offsets) of each term in the documents they appear in.
         [x] This is useful and necessary for Proximity Searches, which is n-gram EC below. So that users can search for terms that appear close to each other. For example, if someone searches for "tropical fish," you can find documents where these words appear within a certain number of words apart.
+
+    [x] Cosine Similarity
 
     [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
         [ ] Need word positions EC first before n-gram EC
@@ -120,56 +122,3 @@ Issues:
     [ ] Need better word positioning, rn its not as accurate I think its because of the weird tokenizing that's screwing it up
 
     [ ] Cristina's tf-idf way in lecture, she log(tf) which kinda go against the formula but her explanation makes sense. Might need to do a separate index and comare if it really affects the search, and does it even matter.
-
-
-------------------------------------------------------------------------------------------------------------------------------------------
-**KEY NOTES**
-We implemented 2 ways to search
-    1. Index sharding (a-z,0-9 partial indexes)
-    2. Single index with peek() for word positions
-
-    What we found is that with peek(), the search time is significantly faster than sharding. But it only for queries with < 5 terms, the performance falls off if we do a large query. While sharding is consistent and doesn't have a performance drop off. 
-
-    AND SO we're going to use ensemble and use both methods to search.
-
-
-
-------------------------------------------------------------------------------------------------------------------------------------------
-Queries:
-    Good:
-        machine learning
-        master of software engineering
-        master of computer science
-        cristina lopes
-        2019
-        cs121
-        research opportunity in summer
-        public
-        undergraduate program
-        database for machine learning
-        hackathon
-
-    Bad:
-        of next the and up to in technic detail imag for prev size origin taken iso on at is canon eo equiv 10 thi with by 25 from that be inform are comput 100 it uci 50 an as use 20 f2 or d60 ic 70 have crw all not
-
-        machine learning and its impact on society
-
-        apple banana cherry date elder fig grape honey ice jasmine kiwi lime mango nutmeg oak pear quince raspberry strawberry tangerine ube vanilla walnut xylophone yak yoghurt zucchini
-
-        I like pizzas
-        
-        what is two plus two
-        
-        what is 2 + 2
-        
-        麻了，累了，チェ・チー・ドゥオリン，hasta mañana
-        
-        @***909***@, !@!>_<!@! :33333
-        
-        7%9=7*7=49-40=9(3)=27-1
-        
-        computer science computer science computer science computer science computer science
-        
-        :)
-        
-        🗿🗿

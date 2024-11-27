@@ -5,11 +5,13 @@ import time
 from pathlib import Path
 from indexer import Indexer
 
-from search import SearchEngine
+from search import SearchEngine, FileHandler
 from utils.constants import (
     TEST_DIR,
     ANALYST_DIR,
     DEV_DIR,
+    INDEX_PEEK_FILE, 
+    INDEX_MAP_FILE,
     DOCS_FILE,
     INDEX_FILE
 )
@@ -45,6 +47,11 @@ def display_search_results(results, query_time):
             st.markdown(snippet)
 
 
+def cleanup():
+    if 'file_handler' in st.session_state:
+        st.session_state.file_handler.__exit__(None, None, None)
+
+
 def main():
     st.title("Search Engine")
     
@@ -53,7 +60,7 @@ def main():
     data_dir = st.sidebar.selectbox(
         "Select Data Directory",
         [TEST_DIR, ANALYST_DIR, DEV_DIR],
-        index=0
+        index=2
     )
     
     st.sidebar.header("Index Controls")
@@ -105,6 +112,11 @@ def main():
     # Search
     if 'search_engine' not in st.session_state:
         st.session_state.search_engine = SearchEngine()
+        
+    # Initialize FileHandler
+    if 'file_handler' not in st.session_state:
+        st.session_state.file_handler = FileHandler(INDEX_PEEK_FILE, INDEX_MAP_FILE)
+        st.session_state.file_handler.__enter__()
 
     # Search interface
     col1, col2 = st.columns([5, 1])
@@ -119,8 +131,12 @@ def main():
             with st.spinner("Searching..."):
                 start_time = time.time()
                 
-                # Perform search
-                results = st.session_state.search_engine.search(query, max_results)
+                # Perform search with FileHandler
+                results = st.session_state.search_engine.search(
+                    query, 
+                    max_results,
+                    st.session_state.file_handler
+                )
                 
                 query_time = time.time() - start_time
                 display_search_results(results, query_time)             
