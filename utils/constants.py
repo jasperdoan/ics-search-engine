@@ -28,7 +28,6 @@ CONFIG = {
     'similarity_threshold': 0.85,
     'max_index_size': 32 * 1024 * 1024, # 32MB Offload
     'max_cache_size': 1000,
-    'search_cache_size': 12,    # Out of 36 indexes (so 12 would be 1/3 of the full index)
     'simhash_cache_size': 1000000
 }
 
