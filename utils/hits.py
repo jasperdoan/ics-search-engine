@@ -67,21 +67,8 @@ class HITS:
         idx_to_url = {i: url for url, i in url_to_idx.items()}
         self.auth_scores = {idx_to_url[i]: score*10 for i, score in enumerate(auth_vector)}
         self.hub_scores = {idx_to_url[i]: score*10 for i, score in enumerate(hub_vector)}
-        
-
-    def save_scores(self, output_dir: Path) -> None:
-        """Save computed scores to disk"""
-        output_dir.mkdir(exist_ok=True)
-        
-        scores = {
-            'authority_scores': self.auth_scores,
-            'hub_scores': self.hub_scores
-        }
-        
-        with open(output_dir / 'hits_scores.json', 'w') as f:
-            json.dump(scores, f)
-            
-            
+    
+                    
     def load_scores(self, output_dir: Path) -> None:
         """Load pre-computed scores from disk"""
         try:

@@ -12,6 +12,7 @@ from scipy.sparse import csr_matrix
 from urllib.parse import urldefrag
 
 from utils.hits import HITS
+from utils.pagerank import PageRank
 from utils.tokenizer import tokenize
 from utils.constants import RANGE_DIR, DOCS_FILE, INDEX_MAP_FILE, INDEX_PEEK_FILE, FULL_ANALYTICS_DIR
 
@@ -56,18 +57,20 @@ class SearchEngine:
     def __init__(self):
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
-        self.hits = HITS()  # Initialize HITS
-        self._load_hits_scores()
+        self.hits = HITS()
+        self.pagerank = PageRank()
+        self._load_link_scores()
+        
 
-
-    def _load_hits_scores(self):
-        """Load pre-computed HITS scores"""
+    def _load_link_scores(self):
         try:
-            self.hits.load_scores(Path(FULL_ANALYTICS_DIR))
+            with open(Path(FULL_ANALYTICS_DIR) / 'link_scores.json', 'r') as f:
+                scores = json.load(f)
+                self.hits.auth_scores = scores['hits']['authority']
+                self.hits.hub_scores = scores['hits']['hub']
+                self.pagerank.scores = scores['pagerank']
         except FileNotFoundError:
-            print("Computing HITS scores...")
-            self.hits.compute_scores(self.documents)
-            self.hits.save_scores(Path(FULL_ANALYTICS_DIR))
+            print("No pre-computed link scores found")
 
 
     def _compute_query_freq_term(self, query_terms: List[str]) -> Dict[str, float]:
@@ -163,17 +166,19 @@ class SearchEngine:
             url = self.documents[str(doc_id)]["url"]
             term_match_boost = len(matched_terms) / total_query_terms
             
-            # Get HITS scores
+            # Get HITS + PageRank scores
             auth_score = self.hits.auth_scores.get(url, 0.0)
             hub_score = self.hits.hub_scores.get(url, 0.0)
+            page_rank_score = self.pagerank.scores.get(url, 0.0)
             
             # Updated scoring formula
             combined_score = (
                 0.20 * tf_idf_score + 
                 0.20 * similarities[i] +
                 0.60 * term_match_boost +
-                0.15 * auth_score +
-                0.15 * hub_score
+                0.10 * auth_score +
+                0.10 * hub_score +
+                0.15 * page_rank_score
             )
 
             results.append(
