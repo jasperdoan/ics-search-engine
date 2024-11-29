@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
+from urllib.parse import urldefrag
 
 from utils.tokenizer import tokenize
 from utils.constants import RANGE_DIR, DOCS_FILE, INDEX_MAP_FILE, INDEX_PEEK_FILE
@@ -151,9 +152,11 @@ class SearchEngine:
                 0.2 * similarities[i] +
                 0.6 * term_match_boost
             )
+            url, _ = urldefrag(self.documents[str(doc_id)]["url"])
+            
             results.append(
                 SearchResult(
-                    url=self.documents[str(doc_id)]["url"],
+                    url=url,
                     score=combined_score,
                     matched_terms=list(matched_terms)
                 )
