@@ -10,9 +10,10 @@ from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 from urllib.parse import urldefrag
+from hits import HITS
 
 from utils.tokenizer import tokenize
-from utils.constants import RANGE_DIR, DOCS_FILE, INDEX_MAP_FILE, INDEX_PEEK_FILE
+from utils.constants import RANGE_DIR, DOCS_FILE, INDEX_MAP_FILE, INDEX_PEEK_FILE, FULL_ANALYTICS_DIR
 
 
 @dataclass
@@ -55,6 +56,19 @@ class SearchEngine:
     def __init__(self):
         with open(DOCS_FILE, 'r') as f:
             self.documents = json.load(f)
+        self.hits = HITS()  # Initialize HITS
+        self._load_hits_scores()
+
+
+    def _load_hits_scores(self):
+        """Load pre-computed HITS scores"""
+        try:
+            self.hits.load_scores(Path(FULL_ANALYTICS_DIR))
+        except FileNotFoundError:
+            print("Computing HITS scores...")
+            self.hits.compute_scores(self.documents)
+            self.hits.save_scores(Path(FULL_ANALYTICS_DIR))
+
 
     def _compute_query_freq_term(self, query_terms: List[str]) -> Dict[str, float]:
         """Compute normalized term frequencies for query terms"""
@@ -146,14 +160,22 @@ class SearchEngine:
         # Combine scores and create results
         results = []
         for i, (doc_id, (tf_idf_score, matched_terms)) in enumerate(doc_scores.items()):
-            term_match_boost = len(matched_terms) / total_query_terms
-            combined_score = (
-                0.2 * tf_idf_score + 
-                0.2 * similarities[i] +
-                0.6 * term_match_boost
-            )
             url, _ = urldefrag(self.documents[str(doc_id)]["url"])
+            term_match_boost = len(matched_terms) / total_query_terms
             
+            # Get HITS scores
+            auth_score = self.hits.auth_scores.get(url, 0.0)
+            hub_score = self.hits.hub_scores.get(url, 0.0)
+            
+            # Updated scoring formula
+            combined_score = (
+                0.15 * tf_idf_score + 
+                0.15 * similarities[i] +
+                0.40 * term_match_boost +
+                0.15 * auth_score +
+                0.15 * hub_score
+            )
+
             results.append(
                 SearchResult(
                     url=url,
@@ -161,7 +183,7 @@ class SearchEngine:
                     matched_terms=list(matched_terms)
                 )
             )
-        
+
         # Sort by combined score
         results.sort(key=lambda x: x.score, reverse=True)
         return results[:max_results]

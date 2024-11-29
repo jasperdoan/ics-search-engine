@@ -3,10 +3,12 @@ import re
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
 from utils.simhash import SimHash
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
+from urllib.parse import urljoin
 
 from utils.tokenizer import tokenize
 from utils.constants import TAG_WEIGHTS
+
 
 @dataclass
 class Document:
@@ -15,6 +17,12 @@ class Document:
     doc_id: int
     simhash: str = ""
     token_count: int = 0
+    outgoing_links: List[str] = None 
+    
+    def __post_init__(self):
+        if self.outgoing_links is None:
+            self.outgoing_links = []
+
 
 class DocumentProcessor:
     def __init__(self):
@@ -66,6 +74,18 @@ class DocumentProcessor:
         for existing_doc in existing_docs.values():
             similarity_score = 1 - self.simhasher.hamming_distance(simhash, existing_doc.simhash) / self.simhasher.b
             if similarity_score >= threshold:
-                print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, being {100*similarity_score:.2f}% similar")
+                # print(f"\tNear-duplicate document detected to {existing_doc.doc_id}, being {100*similarity_score:.2f}% similar")
                 return True
         return False
+
+    def extract_links(self, soup: BeautifulSoup, base_url: str) -> List[str]:
+        """Extract and normalize all links from the document"""
+        links = []
+        for a in soup.find_all('a', href=True):
+            href = a['href']
+            try:
+                if href and href.startswith(('http://', 'https://')) and href != base_url:  # Don't include self-links
+                    links.append(href)
+            except:
+                continue
+        return list(set(links))  # Remove duplicates
