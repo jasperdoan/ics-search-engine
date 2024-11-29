@@ -160,7 +160,7 @@ class SearchEngine:
         # Combine scores and create results
         results = []
         for i, (doc_id, (tf_idf_score, matched_terms)) in enumerate(doc_scores.items()):
-            url, _ = urldefrag(self.documents[str(doc_id)]["url"])
+            url = self.documents[str(doc_id)]["url"]
             term_match_boost = len(matched_terms) / total_query_terms
             
             # Get HITS scores
@@ -178,7 +178,7 @@ class SearchEngine:
 
             results.append(
                 SearchResult(
-                    url=url,
+                    url=urldefrag(url)[0],
                     score=combined_score,
                     matched_terms=list(matched_terms)
                 )

@@ -62,8 +62,8 @@ class HITS:
         
         # Store scores mapped to URLs
         idx_to_url = {i: url for url, i in url_to_idx.items()}
-        self.auth_scores = {idx_to_url[i]: score for i, score in enumerate(auth_vector)}
-        self.hub_scores = {idx_to_url[i]: score for i, score in enumerate(hub_vector)}
+        self.auth_scores = {idx_to_url[i]: score*10 for i, score in enumerate(auth_vector)}
+        self.hub_scores = {idx_to_url[i]: score*10 for i, score in enumerate(hub_vector)}
         
     def save_scores(self, output_dir: Path) -> None:
         """Save computed scores to disk"""
