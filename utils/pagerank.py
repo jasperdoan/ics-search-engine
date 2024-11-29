@@ -3,6 +3,7 @@ import numpy as np
 from typing import Dict, List, Tuple
 from pathlib import Path
 
+
 class PageRank:
     def __init__(self, damping_factor=0.85, max_iterations=100, threshold=0.0001):
         self.damping_factor = damping_factor
@@ -10,6 +11,7 @@ class PageRank:
         self.threshold = threshold
         self.scores = {}
         
+
     def compute_scores(self, documents):
         # Build adjacency matrix
         urls = list({doc['url'] for doc in documents.values()})
@@ -38,5 +40,5 @@ class PageRank:
             scores = new_scores
             
         # Store results
-        self.scores = {url: float(score) for url, score 
+        self.scores = {url: float(score)*1000 for url, score 
                       in zip(urls, scores)}

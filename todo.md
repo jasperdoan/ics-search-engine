@@ -69,7 +69,7 @@ Extra Credit:
 
     [x] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
         [x] HITS: Hyperlink-Induced Topic Search
-        [ ] PR: PageRank
+        [x] PR: PageRank
 
     [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
         [ ] Need word positions EC first before n-gram EC

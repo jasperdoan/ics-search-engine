@@ -24,14 +24,27 @@ st.set_page_config(
 )
 
 
-def load_json_data():
-    """Load JSON data into session state if not already loaded"""
-    if 'index_data' not in st.session_state or 'docs_data' not in st.session_state:
+def load_index_stats():
+    """Load and cache index statistics in session state"""
+    if 'index_stats' not in st.session_state:
         try:
-            with open(INDEX_FILE, "r") as f:
-                st.session_state.index_data = json.load(f)
-            with open(DOCS_FILE, "r") as f:
-                st.session_state.docs_data = json.load(f)
+            with open(DOCS_FILE, 'rb') as f:
+                docs_data = json.load(f)
+            with open(INDEX_FILE, 'rb') as f:
+                index_data = json.load(f)
+            
+            # Store only the statistics we need
+            st.session_state.index_stats = {
+                'total_docs': len(docs_data),
+                'total_terms': len(index_data),
+                'index_size': Path(INDEX_FILE).stat().st_size / 1024,  # KB
+                'docs_size': Path(DOCS_FILE).stat().st_size / 1024     # KB
+            }
+            
+            # Clear data
+            del docs_data
+            del index_data
+            
             return True
         except FileNotFoundError:
             return False
@@ -98,16 +111,19 @@ def main():
             st.experimental_rerun()
 
     with st.sidebar.expander("Index Statistics"):                
-        if load_json_data():
+        if load_index_stats():
+            stats = st.session_state.index_stats
             stats_text = f"""
             📊 Index Statistics\n
-            • Total documents: {len(st.session_state.docs_data)}\n
-            • Total unique terms: {len(st.session_state.index_data)}\n
-            • Index size: {Path(INDEX_FILE).stat().st_size / 1024:.2f} KB
+            • Total documents: {stats['total_docs']}\n
+            • Total unique terms: {stats['total_terms']}\n
+            • Index size: {stats['index_size']:.2f} KB\n
+            • Documents size: {stats['docs_size']:.2f} KB
             """
             st.info(stats_text)
         else:
             st.error("No index file found. Please build the index first.")
+
 
     # Search
     if 'search_engine' not in st.session_state:
@@ -127,21 +143,18 @@ def main():
         max_results = st.number_input("Max results", 5, 100, 10)
         
     if query:
-        if load_json_data():
-            with st.spinner("Searching..."):
-                start_time = time.time()
-                
-                # Perform search with FileHandler
-                results = st.session_state.search_engine.search(
-                    query, 
-                    max_results,
-                    st.session_state.file_handler
-                )
-                
-                query_time = time.time() - start_time
-                display_search_results(results, query_time)             
-        else:
-            st.error("Search index not found. Please build the index first.")
+        with st.spinner("Searching..."):
+            start_time = time.time()
+            
+            # Perform search with FileHandler
+            results = st.session_state.search_engine.search(
+                query, 
+                max_results,
+                st.session_state.file_handler
+            )
+            
+            query_time = time.time() - start_time
+            display_search_results(results, query_time)
     else:
         st.info("Enter a search query to find relevant documents")
 

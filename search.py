@@ -173,12 +173,12 @@ class SearchEngine:
             
             # Updated scoring formula
             combined_score = (
-                0.20 * tf_idf_score + 
-                0.20 * similarities[i] +
-                0.60 * term_match_boost +
-                0.10 * auth_score +
-                0.10 * hub_score +
-                0.15 * page_rank_score
+                0.2 * tf_idf_score + 
+                0.2 * similarities[i] +
+                0.6 * term_match_boost +
+                0.1 * auth_score +
+                0.1 * hub_score +
+                0.2 * page_rank_score
             )
 
             results.append(

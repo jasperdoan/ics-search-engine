@@ -67,14 +67,3 @@ class HITS:
         idx_to_url = {i: url for url, i in url_to_idx.items()}
         self.auth_scores = {idx_to_url[i]: score*10 for i, score in enumerate(auth_vector)}
         self.hub_scores = {idx_to_url[i]: score*10 for i, score in enumerate(hub_vector)}
-    
-                    
-    def load_scores(self, output_dir: Path) -> None:
-        """Load pre-computed scores from disk"""
-        try:
-            with open(output_dir / 'hits_scores.json', 'r') as f:
-                scores = json.load(f)
-                self.auth_scores = scores['authority_scores']
-                self.hub_scores = scores['hub_scores']
-        except FileNotFoundError:
-            print("No pre-computed HITS scores found")
