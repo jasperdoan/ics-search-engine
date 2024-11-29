@@ -2,10 +2,13 @@ import json
 
 from pathlib import Path
 from typing import Dict, List, Callable, Optional
+from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 from components.document_processor import DocumentProcessor, Document
 from components.token_processor import TokenProcessor
 from components.index_manager import IndexManager
+from utils.hits import HITS
 from utils.index_generator import IndexGenerator
 from utils.partials_handler import convert_json_to_pickle
 from utils.constants import (
@@ -41,13 +44,12 @@ class Indexer:
     def process_document(self, file_path: Path) -> None:
         """Process a single document and update the index"""
         try:
-            print(f"\nProcessing {file_path}")
-            
+            # print(f"\nProcessing {file_path}")
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
             if data['url'].lower().endswith('.txt'):
-                print(f"\tSkipping .txt file: {data['url']}")
+                # print(f"\tSkipping .txt file: {data['url']}")
                 return
 
             # Process document content
@@ -55,6 +57,10 @@ class Indexer:
             weighted_text = self.doc_processor.extract_important_text(soup)
             doc = self.doc_processor.create_document(data, text, self.next_doc_id)
 
+            # Extract links for HITS
+            links = self.doc_processor.extract_links(BeautifulSoup(data.get('content', ''), 'html.parser'), data['url'])
+            doc.outgoing_links = links
+            
             # Check for near-duplicates
             if self.doc_processor.is_near_duplicate(doc.simhash, self.documents, CONFIG['similarity_threshold']):
                 return
@@ -63,7 +69,7 @@ class Indexer:
             freq_map = self.token_processor.process_tokens(text, weighted_text)
             unique_terms = self.index_manager.update_index(freq_map, doc.doc_id)
             
-            print(f"\tAdded {unique_terms} unique terms to index")
+            # print(f"\tAdded {unique_terms} unique terms to index")
             
             self.documents[doc.doc_id] = doc
             self.next_doc_id += 1
@@ -77,21 +83,37 @@ class Indexer:
     def build_index(self) -> None:
         """Build the complete index from documents"""
         self.files_processed = 0
+        
+        # Get all json files first
+        all_files = []
         for folder in self.data_dir.iterdir():
             if folder.is_dir():
-                for file in folder.glob("*.json"):
-                    self.process_document(file)
-                    self.files_processed += 1
-                    if self.progress_callback:
-                        progress = (self.files_processed / self.total_files) * 100
-                        self.progress_callback(progress)
+                all_files.extend(folder.glob("*.json"))
+                
+        # Create progress bar
+        with tqdm(total=len(all_files), desc="Indexing documents") as pbar:
+            for file in all_files:
+                self.process_document(file)
+                self.files_processed += 1
+                if self.progress_callback:
+                    progress = (self.files_processed / self.total_files) * 100
+                    self.progress_callback(progress)
+                pbar.update(1)
         
-        # Final last write if there's still stuff in index
+        # Final write if there's still data in index
         if self.index_manager.index:
             self.index_manager.write_partial_index()
+            
+        # Add progress bars for post-processing
+        print("\nPost-processing indexes...")
         
-        self.index_manager.sort_partial_indexes_by_terms()          # Sort into ranges
-        self.index_manager.calculate_range_tf_idf(self.documents)   # Then calculate TF-IDF for range indexes
+        with tqdm(desc="Sorting indexes by terms") as pbar:
+            self.index_manager.sort_partial_indexes_by_terms()
+            pbar.update(1)
+            
+        with tqdm(desc="Calculating TF-IDF scores") as pbar:
+            self.index_manager.calculate_range_tf_idf(self.documents)
+            pbar.update(1)
 
     def save_data(self) -> None:
         """Save documents and index to files"""
@@ -100,12 +122,19 @@ class Indexer:
                 "url": doc.url,
                 "simhash": doc.simhash,
                 "token_count": doc.token_count,
-                "content": doc.content
+                "content": doc.content,
+                "outgoing_links": doc.outgoing_links  # Add this
             } for doc_id, doc in self.documents.items()
         }
         
         with open(DOCS_FILE, 'w') as f:
             json.dump(documents_output, f)
+
+        # Compute and save HITS scores
+        print("\nComputing HITS scores...")
+        hits = HITS()
+        hits.compute_scores(documents_output)
+        hits.save_scores(Path(FULL_ANALYTICS_DIR))
             
         self.index_manager.merge_indexes()
         self.index_manager.save_index(INDEX_FILE)
