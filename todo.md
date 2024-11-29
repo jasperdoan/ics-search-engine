@@ -67,10 +67,12 @@ Extra Credit:
 
     [x] Cosine Similarity
 
+    [x] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
+        [x] HITS: Hyperlink-Induced Topic Search
+        [ ] PR: PageRank
+
     [ ] Implement an additional 2-gram and/or 3-gram indexing and use it during retrieval. (1 point)
         [ ] Need word positions EC first before n-gram EC
-
-    [ ] Add HITS and/or Page Rank to your ranking formula. (1.5 for HITS, 2.5 for PR)
 
     [ ] Index anchor words for the target pages (1 point).
         [ ] During indexing, identify and extract the anchor words from hyperlinks --> include in inverted index & associating them with the target pages they link to.

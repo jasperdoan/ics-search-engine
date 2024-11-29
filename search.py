@@ -10,8 +10,8 @@ from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 from urllib.parse import urldefrag
-from hits import HITS
 
+from utils.hits import HITS
 from utils.tokenizer import tokenize
 from utils.constants import RANGE_DIR, DOCS_FILE, INDEX_MAP_FILE, INDEX_PEEK_FILE, FULL_ANALYTICS_DIR
 
@@ -169,9 +169,9 @@ class SearchEngine:
             
             # Updated scoring formula
             combined_score = (
-                0.15 * tf_idf_score + 
-                0.15 * similarities[i] +
-                0.40 * term_match_boost +
+                0.20 * tf_idf_score + 
+                0.20 * similarities[i] +
+                0.60 * term_match_boost +
                 0.15 * auth_score +
                 0.15 * hub_score
             )

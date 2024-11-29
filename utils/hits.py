@@ -4,6 +4,7 @@ import json
 from typing import Dict, List, Tuple
 from pathlib import Path
 
+
 class HITS:
     def __init__(self, max_iterations: int = 20, threshold: float = 0.0001):
         self.max_iterations = max_iterations
@@ -11,6 +12,7 @@ class HITS:
         self.hub_scores: Dict[str, float] = {}
         self.auth_scores: Dict[str, float] = {}
         
+
     def build_adjacency_matrix(self, documents: Dict[str, Dict]) -> Tuple[np.ndarray, Dict[str, int]]:
         """Build adjacency matrix from document link structure"""
         # Create URL to index mapping
@@ -32,6 +34,7 @@ class HITS:
                         
         return adj_matrix, url_to_idx
         
+
     def compute_scores(self, documents: Dict[str, Dict]) -> None:
         """Compute HITS hub and authority scores"""
         # Build adjacency matrix
@@ -65,6 +68,7 @@ class HITS:
         self.auth_scores = {idx_to_url[i]: score*10 for i, score in enumerate(auth_vector)}
         self.hub_scores = {idx_to_url[i]: score*10 for i, score in enumerate(hub_vector)}
         
+
     def save_scores(self, output_dir: Path) -> None:
         """Save computed scores to disk"""
         output_dir.mkdir(exist_ok=True)
@@ -76,6 +80,7 @@ class HITS:
         
         with open(output_dir / 'hits_scores.json', 'w') as f:
             json.dump(scores, f)
+            
             
     def load_scores(self, output_dir: Path) -> None:
         """Load pre-computed scores from disk"""

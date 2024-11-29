@@ -2,12 +2,13 @@ import json
 
 from pathlib import Path
 from typing import Dict, List, Callable, Optional
+from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from hits import HITS
 from components.document_processor import DocumentProcessor, Document
 from components.token_processor import TokenProcessor
 from components.index_manager import IndexManager
+from utils.hits import HITS
 from utils.index_generator import IndexGenerator
 from utils.partials_handler import convert_json_to_pickle
 from utils.constants import (
@@ -56,8 +57,7 @@ class Indexer:
             weighted_text = self.doc_processor.extract_important_text(soup)
             doc = self.doc_processor.create_document(data, text, self.next_doc_id)
 
-            # Extract links
-            from bs4 import BeautifulSoup
+            # Extract links for HITS
             links = self.doc_processor.extract_links(BeautifulSoup(data.get('content', ''), 'html.parser'), data['url'])
             doc.outgoing_links = links
             
