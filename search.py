@@ -9,12 +9,20 @@ from dataclasses import dataclass
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
+from functools import lru_cache
 from urllib.parse import urldefrag
 
 from utils.hits import HITS
 from utils.pagerank import PageRank
 from utils.tokenizer import tokenize
-from utils.constants import RANGE_DIR, DOCS_FILE, INDEX_MAP_FILE, INDEX_PEEK_FILE, FULL_ANALYTICS_DIR
+from utils.constants import (
+    RANGE_DIR, 
+    DOCS_FILE, 
+    INDEX_MAP_FILE, 
+    INDEX_PEEK_FILE,
+    CONFIG,
+    FULL_ANALYTICS_DIR
+)
 
 
 @dataclass
@@ -43,6 +51,7 @@ class FileHandler:
         if self.file_ptr:
             self.file_ptr.close()
 
+    @lru_cache(CONFIG['max_cache_size'])
     def get_postings(self, term: str) -> List:
         """Get postings list for a term using seek position"""
         if term not in self.seek_positions:

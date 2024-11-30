@@ -52,12 +52,14 @@ def load_index_stats():
 
 
 def display_search_results(results, query_time):
+    """Display search results with clickable links"""
     st.write(f"Found {len(results)} results ({query_time:.3f} seconds)")
     
     for rank, result in enumerate(results, 1):
-        with st.expander(f"{rank}. {result.url} (Score: {result.score:.3f})"):
-            snippet = f"Matched terms: {', '.join(result.matched_terms)}"
-            st.markdown(snippet)
+        # Create collapsible card for each result
+        with st.expander(f"**🔍 Result {rank} (Score: {result.score:.3f})**", expanded=True):
+            st.markdown(f"[{result.url}]({result.url})")
+            st.markdown(f"Matched terms: `{', '.join(result.matched_terms)}`")
 
 
 def cleanup():

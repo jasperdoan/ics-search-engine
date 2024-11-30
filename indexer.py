@@ -123,8 +123,7 @@ class Indexer:
                 "url": doc.url,
                 "simhash": doc.simhash,
                 "token_count": doc.token_count,
-                "content": doc.content,
-                "outgoing_links": doc.outgoing_links  # Add this
+                "outgoing_links": doc.outgoing_links
             } for doc_id, doc in self.documents.items()
         }
         
@@ -132,7 +131,7 @@ class Indexer:
             json.dump(documents_output, f)
 
         # Compute and save HITS + PageRank scores
-        print("\nComputing HITS scores...")
+        print("\nComputing HITS + PageRank scores...")
         hits = HITS()
         pagerank = PageRank()
 

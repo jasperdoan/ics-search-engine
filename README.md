@@ -9,7 +9,7 @@ A high-performance search engine built for CS121 that indexes and searches UCI I
   - TF-IDF scoring
   - Cosine similarity
   - Term match boosting
-  - HITS algorithm for page ranking
+  - HITS + PageRanking algorithm for page ranking
 - Near-duplicate detection using SimHash
 - Smart caching system for frequently accessed terms
 - Efficient index storage and retrieval using hybrid Pickle/JSON approach
