@@ -13,7 +13,8 @@ from utils.constants import (
     INDEX_PEEK_FILE, 
     INDEX_MAP_FILE,
     DOCS_FILE,
-    INDEX_FILE
+    INDEX_FILE,
+    DOC_TITLE_FILE
 )
 
 st.set_page_config(
@@ -58,7 +59,8 @@ def display_search_results(results, query_time):
     for rank, result in enumerate(results, 1):
         # Create collapsible card for each result
         with st.expander(f"**🔍 Result {rank} (Score: {result.score:.3f})**", expanded=True):
-            st.markdown(f"[{result.url}]({result.url})")
+            title = st.session_state.doc_titles.get(result.url, result.url)
+            st.markdown(f"##### [{title}]({result.url})")
             st.markdown(f"Matched terms: `{', '.join(result.matched_terms)}`")
 
 
@@ -69,62 +71,63 @@ def cleanup():
 
 def main():
     st.title("Search Engine")
+    st.write("CS121 A3 Search Engine - by Jasper D, & Max R")
     
-    # Sidebar / Index
-    st.sidebar.header("Configuration")
-    data_dir = st.sidebar.selectbox(
-        "Select Data Directory",
-        [TEST_DIR, ANALYST_DIR, DEV_DIR],
-        index=2
-    )
+    # # Sidebar / Index
+    # st.sidebar.header("Configuration")
+    # data_dir = st.sidebar.selectbox(
+    #     "Select Data Directory",
+    #     [TEST_DIR, ANALYST_DIR, DEV_DIR],
+    #     index=2
+    # )
     
-    st.sidebar.header("Index Controls")
-    col1, col2 = st.sidebar.columns([1, 1])
+    # st.sidebar.header("Index Controls")
+    # col1, col2 = st.sidebar.columns([1, 1])
 
-    with col1:
-        if st.button("🏗️ Build Index 🛠️"):
-            with st.spinner("Building index..."):
-                indexer = Indexer(data_dir)
+    # with col1:
+    #     if st.button("🏗️ Build Index 🛠️"):
+    #         with st.spinner("Building index..."):
+    #             indexer = Indexer(data_dir)
                 
-                progress_text = st.sidebar.empty()
-                progress_bar = st.sidebar.progress(0)
+    #             progress_text = st.sidebar.empty()
+    #             progress_bar = st.sidebar.progress(0)
                 
-                def update_progress(percent):
-                    progress_bar.progress(percent / 100)
-                    progress_text.text(f"Processing... {percent:.1f}%")
+    #             def update_progress(percent):
+    #                 progress_bar.progress(percent / 100)
+    #                 progress_text.text(f"Processing... {percent:.1f}%")
                 
-                def custom_print(text):
-                    progress_text.text(text)
+    #             def custom_print(text):
+    #                 progress_text.text(text)
                 
-                indexer._print = custom_print
-                indexer.set_progress_callback(update_progress)
+    #             indexer._print = custom_print
+    #             indexer.set_progress_callback(update_progress)
                 
-                indexer.build_index()
-                indexer.save_index()
+    #             indexer.build_index()
+    #             indexer.save_index()
                 
-                progress_text.text("Completed!")
-                progress_bar.progress(100)
-                st.sidebar.success("Index built successfully!")
+    #             progress_text.text("Completed!")
+    #             progress_bar.progress(100)
+    #             st.sidebar.success("Index built successfully!")
 
-    with col2:
-        if st.button("🔄 Reload Data 🔄", help="Reload data"):
-            st.session_state.pop('index_data', None)
-            st.session_state.pop('docs_data', None)
-            st.experimental_rerun()
+    # with col2:
+    #     if st.button("🔄 Reload Data 🔄", help="Reload data"):
+    #         st.session_state.pop('index_data', None)
+    #         st.session_state.pop('docs_data', None)
+    #         st.experimental_rerun()
 
-    with st.sidebar.expander("Index Statistics"):                
-        if load_index_stats():
-            stats = st.session_state.index_stats
-            stats_text = f"""
-            📊 Index Statistics\n
-            • Total documents: {stats['total_docs']}\n
-            • Total unique terms: {stats['total_terms']}\n
-            • Index size: {stats['index_size']:.2f} KB\n
-            • Documents size: {stats['docs_size']:.2f} KB
-            """
-            st.info(stats_text)
-        else:
-            st.error("No index file found. Please build the index first.")
+    # with st.sidebar.expander("Index Statistics"):                
+    #     if load_index_stats():
+    #         stats = st.session_state.index_stats
+    #         stats_text = f"""
+    #         📊 Index Statistics\n
+    #         • Total documents: {stats['total_docs']}\n
+    #         • Total unique terms: {stats['total_terms']}\n
+    #         • Index size: {stats['index_size']:.2f} KB\n
+    #         • Documents size: {stats['docs_size']:.2f} KB
+    #         """
+    #         st.info(stats_text)
+    #     else:
+    #         st.error("No index file found. Please build the index first.")
 
 
     # Search
@@ -135,6 +138,10 @@ def main():
     if 'file_handler' not in st.session_state:
         st.session_state.file_handler = FileHandler(INDEX_PEEK_FILE, INDEX_MAP_FILE)
         st.session_state.file_handler.__enter__()
+
+    if 'doc_titles' not in st.session_state:
+        with open(DOC_TITLE_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            st.session_state.doc_titles = json.load(f)
 
     # Search interface
     col1, col2 = st.columns([5, 1])

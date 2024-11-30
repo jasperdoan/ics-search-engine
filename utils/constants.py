@@ -40,6 +40,7 @@ DOCS_FILE = f"{FULL_ANALYTICS_DIR}/documents.json"
 INDEX_FILE = f"{FULL_ANALYTICS_DIR}/index.json"
 INDEX_PEEK_FILE = f"{FULL_ANALYTICS_DIR}/index_peek.pkl"
 INDEX_MAP_FILE = f"{FULL_ANALYTICS_DIR}/index_map_position.json"
+DOC_TITLE_FILE = f"{FULL_ANALYTICS_DIR}/doc_titles.json"
 
 # TAGS
 TAG_WEIGHTS = {
