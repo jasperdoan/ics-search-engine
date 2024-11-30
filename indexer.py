@@ -9,6 +9,7 @@ from components.document_processor import DocumentProcessor, Document
 from components.token_processor import TokenProcessor
 from components.index_manager import IndexManager
 from utils.hits import HITS
+from utils.pagerank import PageRank
 from utils.index_generator import IndexGenerator
 from utils.partials_handler import convert_json_to_pickle
 from utils.constants import (
@@ -130,12 +131,25 @@ class Indexer:
         with open(DOCS_FILE, 'w') as f:
             json.dump(documents_output, f)
 
-        # Compute and save HITS scores
+        # Compute and save HITS + PageRank scores
         print("\nComputing HITS scores...")
         hits = HITS()
-        hits.compute_scores(documents_output)
-        hits.save_scores(Path(FULL_ANALYTICS_DIR))
+        pagerank = PageRank()
+
+        hits.compute_scores(documents_output)    
+        pagerank.compute_scores(documents_output)
+
+        scores = {
+            'hits': {
+                'authority': hits.auth_scores,
+                'hub': hits.hub_scores
+            },
+            'pagerank': pagerank.scores
+        }
             
+        with open(Path(FULL_ANALYTICS_DIR) / 'link_scores.json', 'w') as f:
+            json.dump(scores, f)
+
         self.index_manager.merge_indexes()
         self.index_manager.save_index(INDEX_FILE)
         
