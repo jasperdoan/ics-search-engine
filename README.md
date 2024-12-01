@@ -1,81 +1,93 @@
-# [CS121 Search Engine](https://ics-search-engine.streamlit.app/)
+# Search Engine Overview
 
-A high-performance search engine built for CS121 that indexes and searches UCI ICS website content.
+Our search engine provides fast and accurate search capabilities across UCI's ICS domain. It combines modern information retrieval techniques with efficient data structures to deliver results in milliseconds.
 
-## Features
+## Performance Metrics
+| Query Type | Response Time |
+|------------|---------------|
+| Single term | 10-100ms |
+| Multi-term | 100-200ms |
+| Complex (5+ terms) | 200-300ms |
 
-- Fast search with average query times of 0.01s-0.2s
-- Advanced ranking using:
-  - TF-IDF scoring
-  - Cosine similarity
-  - Term match boosting
-  - HITS + PageRanking algorithm for page ranking
-- Near-duplicate detection using SimHash
-- Smart caching system for frequently accessed terms
-- Efficient index storage and retrieval using hybrid Pickle/JSON approach
+## Core Architecture
 
-## Architecture
+The system is built on four main components working in harmony:
 
-### Core Components
+1. **Document Processing Pipeline**
 
-- **Indexer**: Builds the search index from documents
-- **Search Engine**: Handles query processing and result ranking
-- **Document Processor**: Processes HTML content and detects duplicates
-- **Token Processor**: Handles text tokenization and normalization
-- **Index Manager**: Manages index storage and retrieval
+| Component | Function |
+|-----------|-----------|
+| HTML Parser | Extracts clean text from web pages using BeautifulSoup4 |
+| Text Analyzer | Identifies important content from headers and titles |
+| Duplicate Detector | Prevents index bloat using SimHash algorithm |
 
-### Search Algorithm
-- Multi-factor ranking combining:
-  - TF-IDF: Term frequency-inverse document frequency scoring
-  - Cosine Similarity: Vector space model comparison
-  - Term Match Boost: Rewards matching more query terms
-  - Important Text Weighting: HTML tags like titles and headers get higher weights
-- Query optimization using peek-based index access
-- Cache system for frequent queries
+2. **Search Algorithm**
+
+| Feature | Description |
+|---------|-------------|
+| TF-IDF Scoring | Measures term importance in documents |
+| Cosine Similarity | Computes relevance between query and documents |
+| PageRank & HITS | Incorporates web graph authority signals |
+
+3. **Index Management**
+
+| Strategy | Implementation |
+|----------|----------------|
+| Storage | Hybrid Pickle/JSON for optimal speed/space tradeoff |
+| Access | Peek-based retrieval to minimize memory usage |
+| Caching | LRU cache for frequent terms and queries |
+
+4. **Query Processing**
+
+| Stage | Operation |
+|-------|-----------|
+| Tokenization | NLTK-based text normalization |
+| Stemming | Porter stemming for word variations |
+| Ranking | Multi-factor score combining relevance signals |
+
+## Technical Implementation 
+
+The codebase is organized into focused modules:
+
+- [`search.py`](src/search.py): Core search logic and ranking
+- [`indexer.py`](src/indexer.py): Document processing and index building 
+- [`token_processor.py`](src/components/token_processor.py): Text analysis and normalization
+- [`document_processor.py`](src/components/document_processor.py): HTML handling and deduplication
+
+
+## Data Structures
+
+### Document
+```python
+@dataclass
+class Document:
+    url: str                    # Document URL
+    content: str                # Processed raw text content
+    doc_id: int                 # Unique document identifier
+    simhash: str                # SimHash fingerprint for deduplication
+    token_count: int            # Number of tokens in document
+    outgoing_links: List[str]   # Outgoing URLs for link analysis
+```
+
+### Posting
+```python
+@dataclass
+class Posting:
+    doc_id: int            # Document identifier
+    frequency: int         # Term frequency in document
+    importance: float      # Combined weight from HTML tags
+    tf_idf: float          # Term frequency-inverse document frequency score
+    positions: List[int]   # Token positions for phrase queries
+```
 
 ### Index Structure
-1. **Document Processing**
-   - HTML parsing with BeautifulSoup4
-   - Text extraction and cleaning
-   - Important text weighting based on HTML tags
-   - SimHash-based near-duplicate detection
-
-2. **Token Processing**
-   - NLTK-based tokenization
-   - Porter stemming
-   - Stop word removal
-   - Position tracking for each term
-
-3. **Index Storage**
-   - Hybrid storage using Pickle and JSON
-   - Index sharding for efficient access
-   - Seek-based partial loading
-   - Optimized for memory efficiency
-
-### Key Files
-
-- `main.py`: Web interface using Streamlit
-- `indexer.py`: Core indexing logic
-- `search.py`: Search implementation
-- `document_processor.py`: Document processing and deduplication
-- `token_processor.py`: Text tokenization and processing
-
-## Performance Optimizations
-
-1. **Hybrid Storage Strategy**
-   - Uses Pickle for fast binary storage
-   - JSON map file for efficient term location lookup
-   - Peek-based retrieval for minimal memory usage
-
-2. **Smart Caching**
-   - Caches frequent/recent search results
-   - Configurable cache size limits
-   - Balanced memory usage vs performance
-
-3. **Duplicate Detection**
-   - SimHash-based near-duplicate detection
-   - Configurable similarity threshold
-   - Improves result quality and index size
+```python
+{
+    "term1": [Posting1, Posting2, ...],
+    "term2": [Posting3, Posting4, ...],
+    ...
+}
+```
 
 ## Usage
 
@@ -101,9 +113,3 @@ python3 search.py
 - NumPy
 - SciPy
 - scikit-learn
-
-## Performance
-Typical query performance:
-- Single term queries: 0.01s - 0.1s
-- Multi-term queries: 0.1s - 0.2s
-- Complex queries (5+ terms): 0.2s - 0.3s
