@@ -96,9 +96,13 @@ class IndexManager:
         """Merge partial indexes and split into range-based files"""
         range_indexes = defaultdict(lambda: defaultdict(list))
         
+        files_to_merge = []
+        # Use glob to get all partial index files
+        for files in self.partial_dir.glob("*.json"):
+            files_to_merge.append(files)
+
         # During merging all partials, sort by term range
-        for i in range(self.partial_index_count):
-            partial_path = self.partial_dir / f"partial_{i}.json"
+        for partial_path in files_to_merge:
             with open(partial_path, 'r') as f:
                 partial_data = json.load(f)
                 

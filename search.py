@@ -4,13 +4,13 @@ import pickle
 import numpy as np
 
 from pathlib import Path
-from typing import Dict, List, Tuple
-from dataclasses import dataclass
-from collections import defaultdict
-from sklearn.metrics.pairwise import cosine_similarity
-from scipy.sparse import csr_matrix
 from functools import lru_cache
+from dataclasses import dataclass
 from urllib.parse import urldefrag
+from collections import defaultdict
+from scipy.sparse import csr_matrix
+from typing import Dict, List, Tuple
+from sklearn.metrics.pairwise import cosine_similarity
 
 from utils.hits import HITS
 from utils.pagerank import PageRank
@@ -34,7 +34,6 @@ class SearchResult:
 
 class FileHandler:
     """Handles file operations for search"""
-    
     def __init__(self, index_path: str, seek_index_path: str):
         self.index_path = Path(index_path)
         self.seek_index_path = Path(seek_index_path)

@@ -1,4 +1,4 @@
-# CS121 Search Engine
+# [CS121 Search Engine](https://ics-search-engine.streamlit.app/)
 
 A high-performance search engine built for CS121 that indexes and searches UCI ICS website content.
 

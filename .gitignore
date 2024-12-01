@@ -26,7 +26,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-full_analytics/
+full_analytics/index.json
 partial_indexes/
 range_indexes/
 
@@ -34,10 +34,4 @@ ANALYST/
 DEV/
 TEST/
 
-*.json
-
 *.zip
-
-*.txt
-
-*.pkl

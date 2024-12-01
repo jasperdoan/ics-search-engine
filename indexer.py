@@ -1,9 +1,9 @@
 import json
 
-from pathlib import Path
-from typing import Dict, List, Callable, Optional
-from bs4 import BeautifulSoup
 from tqdm import tqdm
+from pathlib import Path
+from bs4 import BeautifulSoup
+from typing import Dict, List, Callable, Optional
 
 from components.document_processor import DocumentProcessor, Document
 from components.token_processor import TokenProcessor

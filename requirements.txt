@@ -1,0 +1,7 @@
+beautifulsoup4
+scikit-learn
+scipy
+numpy
+streamlit
+tqdm
+nltk
